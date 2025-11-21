@@ -5,6 +5,8 @@ import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 
 const MessageStatus = ({ status, isRead }) => {
@@ -204,6 +206,8 @@ export default function ChatMessage({
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(message.text || '');
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showPinDialog, setShowPinDialog] = useState(false);
+  const [pinDuration, setPinDuration] = useState('7');
 
   const formatMessageTime = (timestamp) => {
     if (!timestamp) return '';
@@ -261,9 +265,26 @@ export default function ChatMessage({
   };
 
   const handlePin = () => {
-    setIsPinned(!isPinned);
-    onPin?.(message, !isPinned);
-    toast.success(isPinned ? 'Unpinned' : 'Pinned');
+    if (isPinned) {
+      // Unpin directly
+      setIsPinned(false);
+      onPin?.(message, false, null);
+      toast.success('Unpinned');
+    } else {
+      // Show pin duration dialog
+      setShowPinDialog(true);
+    }
+  };
+
+  const handleConfirmPin = () => {
+    const durationDays = parseInt(pinDuration);
+    const expiryDate = new Date();
+    expiryDate.setDate(expiryDate.getDate() + durationDays);
+    
+    setIsPinned(true);
+    onPin?.(message, true, expiryDate.toISOString());
+    setShowPinDialog(false);
+    toast.success(`Pinned for ${pinDuration === '1' ? '24 hours' : pinDuration === '7' ? '7 days' : '30 days'}`);
   };
 
   const handleDelete = () => {
@@ -580,6 +601,51 @@ export default function ChatMessage({
                 Delete for everyone
               </AlertDialogAction>
             )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Pin Duration Dialog */}
+      <AlertDialog open={showPinDialog} onOpenChange={setShowPinDialog}>
+        <AlertDialogContent className="bg-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Choose how long your pin lasts</AlertDialogTitle>
+            <AlertDialogDescription>
+              You can unpin at any time.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <RadioGroup value={pinDuration} onValueChange={setPinDuration}>
+              <div className="flex items-center space-x-2 py-2">
+                <RadioGroupItem value="1" id="pin-24h" />
+                <Label htmlFor="pin-24h" className="cursor-pointer flex-1">
+                  24 hours
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2 py-2">
+                <RadioGroupItem value="7" id="pin-7d" />
+                <Label htmlFor="pin-7d" className="cursor-pointer flex-1">
+                  7 days
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2 py-2">
+                <RadioGroupItem value="30" id="pin-30d" />
+                <Label htmlFor="pin-30d" className="cursor-pointer flex-1">
+                  30 days
+                </Label>
+              </div>
+            </RadioGroup>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowPinDialog(false)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmPin}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              Pin
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
