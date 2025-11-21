@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Paperclip, Mic, MapPin, Image as ImageIcon, FileText, X, Video } from 'lucide-react';
+import { Send, Paperclip, Mic, MapPin, Image as ImageIcon, FileText, X, Video, Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import EmojiPicker from './EmojiPicker';
@@ -10,10 +10,14 @@ export default function ChatInput({ onSendMessage, onSendFile, onSendLocation, d
   const [message, setMessage] = useState('');
   const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [showCamera, setShowCamera] = useState(false);
+  const [stream, setStream] = useState(null);
   const inputRef = useRef(null);
   const fileInputRef = useRef(null);
   const imageInputRef = useRef(null);
   const videoInputRef = useRef(null);
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
 
   const handleSend = () => {
     if (message.trim() && !disabled) {
@@ -71,6 +75,51 @@ export default function ChatInput({ onSendMessage, onSendFile, onSendLocation, d
     inputRef.current?.focus();
   };
 
+  const startCamera = async () => {
+    try {
+      const mediaStream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'user' }, 
+        audio: false 
+      });
+      setStream(mediaStream);
+      setShowCamera(true);
+      if (videoRef.current) {
+        videoRef.current.srcObject = mediaStream;
+      }
+    } catch (error) {
+      console.error('Error accessing camera:', error);
+      alert('Could not access camera. Please check permissions.');
+    }
+  };
+
+  const stopCamera = () => {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      setStream(null);
+    }
+    setShowCamera(false);
+  };
+
+  const capturePhoto = () => {
+    if (videoRef.current && canvasRef.current) {
+      const canvas = canvasRef.current;
+      const video = videoRef.current;
+      
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0);
+      
+      canvas.toBlob((blob) => {
+        if (blob && onSendFile) {
+          onSendFile(blob, 'image');
+        }
+        stopCamera();
+      }, 'image/jpeg', 0.95);
+    }
+  };
+
   if (showVoiceRecorder) {
     return (
       <div className="border-t border-gray-200 p-4 bg-white">
@@ -81,6 +130,36 @@ export default function ChatInput({ onSendMessage, onSendFile, onSendLocation, d
             setIsRecording(false);
           }}
         />
+      </div>
+    );
+  }
+
+  if (showCamera) {
+    return (
+      <div className="border-t border-gray-200 p-4 bg-black">
+        <div className="relative">
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            className="w-full max-h-96 object-contain rounded-lg"
+          />
+          <canvas ref={canvasRef} className="hidden" />
+          <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-4">
+            <button
+              onClick={stopCamera}
+              className="w-12 h-12 bg-gray-600 hover:bg-gray-700 rounded-full flex items-center justify-center transition-colors"
+            >
+              <X className="w-6 h-6 text-white" />
+            </button>
+            <button
+              onClick={capturePhoto}
+              className="w-16 h-16 bg-white rounded-full flex items-center justify-center border-4 border-gray-300 shadow-lg hover:scale-105 transition-transform"
+            >
+              <div className="w-12 h-12 bg-white rounded-full border-2 border-gray-400"></div>
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -109,6 +188,15 @@ export default function ChatInput({ onSendMessage, onSendFile, onSendLocation, d
                   <ImageIcon className="w-6 h-6 text-blue-600" />
                 </div>
                 <span className="text-sm text-gray-700">Photo</span>
+              </button>
+              <button
+                onClick={startCamera}
+                className="flex flex-col items-center gap-2 p-3 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <div className="w-12 h-12 bg-cyan-100 rounded-lg flex items-center justify-center">
+                  <Camera className="w-6 h-6 text-cyan-600" />
+                </div>
+                <span className="text-sm text-gray-700">Camera</span>
               </button>
               <button
                 onClick={() => fileInputRef.current?.click()}
