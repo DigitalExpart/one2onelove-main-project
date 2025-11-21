@@ -98,6 +98,8 @@ import PremiumFeatures from "./PremiumFeatures";
 
 import Chat from "./Chat";
 
+import FindFriends from "./FindFriends";
+
 import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 
 const PAGES = {
@@ -199,6 +201,8 @@ const PAGES = {
     PremiumFeatures: PremiumFeatures,
     
     Chat: Chat,
+    
+    FindFriends: FindFriends,
     
 }
 
@@ -328,6 +332,8 @@ function PagesContent() {
                 <Route path="/PremiumFeatures" element={<PremiumFeatures />} />
                 
                 <Route path="/Chat" element={<Chat />} />
+                
+                <Route path="/FindFriends" element={<FindFriends />} />
                 
             </Routes>
         </Layout>
