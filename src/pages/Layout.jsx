@@ -1,6 +1,6 @@
 
 import React, { useState, createContext, useContext, useRef, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Heart, Home, ChevronDown, User, LogIn, Users, UserPlus, Menu, X, Sparkles, Target, Code, Rainbow, UserCheck, Gift } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -92,6 +92,7 @@ const languages = [
 
 function LanguageContent({ children, currentPageName }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const [actionOpen, setActionOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { currentLanguage, changeLanguage } = useLanguage();
@@ -114,11 +115,11 @@ function LanguageContent({ children, currentPageName }) {
   };
 
   const handleSignIn = () => {
-    base44.auth.redirectToLogin();
+    navigate(createPageUrl("SignIn"));
   };
 
   const handleSignUp = () => {
-    base44.auth.redirectToLogin();
+    navigate(createPageUrl("SignUp"));
   };
 
   useEffect(() => {
