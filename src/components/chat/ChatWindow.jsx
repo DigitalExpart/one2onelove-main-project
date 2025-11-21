@@ -26,6 +26,7 @@ export default function ChatWindow({
   onUnpin,
   onArchive,
   onPopOut,
+  onEditMessage,
   isLoading = false
 }) {
   const messagesEndRef = useRef(null);
@@ -257,10 +258,9 @@ export default function ChatWindow({
                     console.log('Copy:', msg);
                   }}
                   onEdit={(msg, newText) => {
-                    // TODO: Implement edit functionality
-                    console.log('Edit:', msg, newText);
-                    // Update message in messages state
-                    // This would typically update the message in the backend
+                    if (onEditMessage) {
+                      onEditMessage(msg.id, newText);
+                    }
                   }}
                 />
               );

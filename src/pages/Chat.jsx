@@ -569,6 +569,19 @@ export default function Chat() {
           onUnpin={handleUnpin}
           onArchive={handleArchive}
           onPopOut={handlePopOut}
+          onEditMessage={(messageId, newText) => {
+            setMessages((prev) => ({
+              ...prev,
+              [selectedChatId]: prev[selectedChatId].map((msg) =>
+                msg.id === messageId
+                  ? { ...msg, text: newText, isEdited: true }
+                  : msg
+              ),
+            }));
+            toast.success('Message updated');
+            // TODO: Update message in backend
+            // await base44.entities.ChatMessage.update(messageId, { text: newText, is_edited: true });
+          }}
         />
       </div>
 
