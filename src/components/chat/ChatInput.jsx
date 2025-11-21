@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Send, Paperclip, Mic, MapPin, Image as ImageIcon, FileText, X, Video, Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { toast } from 'sonner';
 import EmojiPicker from './EmojiPicker';
 import VoiceRecorder from './VoiceRecorder';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -83,12 +84,19 @@ export default function ChatInput({ onSendMessage, onSendFile, onSendLocation, d
       });
       setStream(mediaStream);
       setShowCamera(true);
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
-      }
+      // Use setTimeout to ensure the video element is rendered
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = mediaStream;
+          videoRef.current.play().catch(err => {
+            console.error('Error playing video:', err);
+          });
+        }
+      }, 100);
     } catch (error) {
       console.error('Error accessing camera:', error);
       alert('Could not access camera. Please check permissions.');
+      setShowCamera(false);
     }
   };
 
@@ -101,22 +109,38 @@ export default function ChatInput({ onSendMessage, onSendFile, onSendLocation, d
   };
 
   const capturePhoto = () => {
-    if (videoRef.current && canvasRef.current) {
+    if (videoRef.current && canvasRef.current && stream) {
       const canvas = canvasRef.current;
       const video = videoRef.current;
       
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
+      // Check if video is ready
+      if (video.readyState !== video.HAVE_ENOUGH_DATA) {
+        console.error('Video not ready');
+        return;
+      }
+      
+      canvas.width = video.videoWidth || video.clientWidth;
+      canvas.height = video.videoHeight || video.clientHeight;
       
       const ctx = canvas.getContext('2d');
-      ctx.drawImage(video, 0, 0);
+      
+      // Flip the image back to normal (since we mirrored it)
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       
       canvas.toBlob((blob) => {
         if (blob && onSendFile) {
           onSendFile(blob, 'image');
+          toast.success('Photo captured!');
+        } else {
+          toast.error('Failed to capture photo');
         }
         stopCamera();
       }, 'image/jpeg', 0.95);
+    } else {
+      console.error('Camera not ready', { video: !!videoRef.current, canvas: !!canvasRef.current, stream: !!stream });
+      toast.error('Camera not ready. Please try again.');
     }
   };
 
@@ -146,14 +170,24 @@ export default function ChatInput({ onSendMessage, onSendFile, onSendLocation, d
   if (showCamera) {
     return (
       <div className="fixed inset-0 z-50 bg-black flex flex-col">
-        <div className="flex-1 relative flex items-center justify-center">
+        <div className="flex-1 relative flex items-center justify-center overflow-hidden">
           <video
             ref={videoRef}
             autoPlay
             playsInline
+            muted
             className="w-full h-full object-cover"
+            style={{ transform: 'scaleX(-1)' }} // Mirror the video for better UX
           />
           <canvas ref={canvasRef} className="hidden" />
+          {!stream && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="text-white text-center">
+                <div className="w-16 h-16 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                <p>Starting camera...</p>
+              </div>
+            </div>
+          )}
         </div>
         <div className="absolute bottom-8 left-0 right-0 flex justify-center gap-6 z-10">
           <button
@@ -164,7 +198,8 @@ export default function ChatInput({ onSendMessage, onSendFile, onSendLocation, d
           </button>
           <button
             onClick={capturePhoto}
-            className="w-20 h-20 bg-white rounded-full flex items-center justify-center border-4 border-gray-300 shadow-2xl hover:scale-105 transition-transform"
+            disabled={!stream}
+            className="w-20 h-20 bg-white rounded-full flex items-center justify-center border-4 border-gray-300 shadow-2xl hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <div className="w-14 h-14 bg-white rounded-full border-2 border-gray-400"></div>
           </button>
