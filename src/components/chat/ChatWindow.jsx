@@ -230,8 +230,9 @@ export default function ChatWindow({
                     <DropdownMenuContent align="end" className="w-48 bg-gray-900 text-white border-gray-700">
                       <DropdownMenuItem 
                         onClick={() => {
-                          onPin?.(pinnedMsg, false, null);
-                          toast.success('Message unpinned');
+                          if (onPin) {
+                            onPin(pinnedMsg.id, false, null);
+                          }
                         }}
                         className="hover:bg-gray-800"
                       >
