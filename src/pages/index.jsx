@@ -96,6 +96,8 @@ import Achievements from "./Achievements";
 
 import PremiumFeatures from "./PremiumFeatures";
 
+import Chat from "./Chat";
+
 import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 
 const PAGES = {
@@ -195,6 +197,8 @@ const PAGES = {
     Achievements: Achievements,
     
     PremiumFeatures: PremiumFeatures,
+    
+    Chat: Chat,
     
 }
 
@@ -322,6 +326,8 @@ function PagesContent() {
                 <Route path="/Achievements" element={<Achievements />} />
                 
                 <Route path="/PremiumFeatures" element={<PremiumFeatures />} />
+                
+                <Route path="/Chat" element={<Chat />} />
                 
             </Routes>
         </Layout>

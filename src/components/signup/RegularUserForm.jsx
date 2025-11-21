@@ -6,6 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { useLanguage } from "@/Layout";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
+import { createPageUrl } from "@/utils";
 
 const translations = {
   en: {
@@ -159,6 +162,8 @@ const translations = {
 
 export default function RegularUserForm({ onBack }) {
   const { currentLanguage } = useLanguage();
+  const { register } = useAuth();
+  const navigate = useNavigate();
   const t = translations[currentLanguage] || translations.en;
 
   const [formData, setFormData] = useState({
@@ -191,9 +196,20 @@ export default function RegularUserForm({ onBack }) {
     setIsLoading(true);
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      toast.success("Account created successfully! Please check your email to verify.");
+      const result = await register({
+        name: formData.fullName,
+        email: formData.email,
+        relationshipStatus: formData.relationshipStatus,
+        anniversaryDate: formData.anniversaryDate,
+        partnerEmail: formData.partnerEmail,
+      });
+
+      if (result.success) {
+        toast.success("Account created successfully! Redirecting to dashboard...");
+        navigate(createPageUrl("Dashboard"));
+      } else {
+        toast.error(result.error || "Something went wrong. Please try again.");
+      }
     } catch (err) {
       toast.error("Something went wrong. Please try again.");
     } finally {

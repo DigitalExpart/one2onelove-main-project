@@ -1,9 +1,11 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Heart, Mail, Lock, Eye, EyeOff, X, UserCheck } from "lucide-react";
+import { Heart, Mail, Lock, Eye, EyeOff, X, UserCheck, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/Layout";
+import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 const translations = {
   en: {
@@ -33,13 +35,38 @@ export default function SignIn() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
   const { currentLanguage } = useLanguage();
+  const { login } = useAuth();
   const t = translations[currentLanguage] || translations.en;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Here you would normally handle the login logic
-    console.log("Login with:", { email, password });
+    
+    if (!email || !password) {
+      toast.error("Please enter both email and password");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const result = await login(email, password);
+      
+      if (result.success) {
+        toast.success("Successfully signed in!");
+        // Redirect to Dashboard
+        navigate(createPageUrl("Dashboard"));
+      } else {
+        toast.error(result.error || "Invalid email or password. Please try again.");
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      toast.error("An error occurred. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -112,9 +139,17 @@ export default function SignIn() {
 
           <Button
             type="submit"
-            className="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-semibold text-lg py-6 rounded-xl shadow-lg transition-all"
+            disabled={isLoading}
+            className="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-semibold text-lg py-6 rounded-xl shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {t.signIn.signInButton}
+            {isLoading ? (
+              <>
+                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                Signing in...
+              </>
+            ) : (
+              t.signIn.signInButton
+            )}
           </Button>
         </form>
 

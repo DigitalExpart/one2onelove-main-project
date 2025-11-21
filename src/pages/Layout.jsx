@@ -4,8 +4,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { Heart, Home, ChevronDown, User, LogIn, Users, UserPlus, Menu, X, Sparkles, Target, Code, Rainbow, UserCheck, Gift, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Select,
   SelectContent,
@@ -102,32 +101,8 @@ function LanguageContent({ children, currentPageName }) {
 
   const selectedLanguage = languages.find(lang => lang.code === currentLanguage);
 
-  // Check if user is authenticated
-  const { data: currentUser } = useQuery({
-    queryKey: ['currentUser'],
-    queryFn: async () => {
-      try {
-        // Check localStorage first (for mock auth)
-        const isAuthenticated = localStorage.getItem('isAuthenticated');
-        if (isAuthenticated === 'true') {
-          // Try to get user from API
-          try {
-            return await base44.auth.me();
-          } catch {
-            // If API fails, return mock user
-            return { email: localStorage.getItem('userEmail') || 'user@example.com' };
-          }
-        }
-        return null;
-      } catch {
-        return null;
-      }
-    },
-    initialData: null,
-    retry: false,
-  });
-
-  const isAuthenticated = !!currentUser;
+  // Get authentication state
+  const { isAuthenticated } = useAuth();
 
   const handleMouseEnter = () => {
     if (closeTimeoutRef.current) {
