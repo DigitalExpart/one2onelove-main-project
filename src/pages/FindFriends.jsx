@@ -12,15 +12,15 @@ import { useLanguage } from '@/Layout';
 
 const translations = {
   en: {
-    title: 'Find Friends',
-    subtitle: 'Search for friends and send friend requests',
+    title: 'Find Buddies',
+    subtitle: 'Search for buddies and send buddy requests',
     searchPlaceholder: 'Search by name, email, or location...',
     noResults: 'No users found',
     sendRequest: 'Send Request',
     requestSent: 'Request Sent',
     cancelRequest: 'Cancel Request',
-    requestSentSuccess: 'Friend request sent successfully!',
-    requestCancelled: 'Friend request cancelled',
+    requestSentSuccess: 'Buddy request sent successfully!',
+    requestCancelled: 'Buddy request cancelled',
     location: 'Location',
     relationshipStatus: 'Relationship Status',
     sharedInterests: 'Shared Interests',
@@ -254,8 +254,8 @@ export default function FindFriends() {
                       <Button
                         variant="outline"
                         onClick={() => {
-                          // TODO: Navigate to user profile
-                          toast.info('Profile view coming soon');
+                          // Navigate to chat page with this user
+                          navigate(`${createPageUrl('Chat')}?user=${user.id}&name=${encodeURIComponent(user.name)}`);
                         }}
                       >
                         <MessageCircle className="w-4 h-4" />
