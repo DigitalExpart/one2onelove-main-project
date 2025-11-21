@@ -2,7 +2,7 @@
 import React, { useState, createContext, useContext, useRef, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Heart, Home, ChevronDown, User, LogIn, Users, UserPlus, Menu, X, Sparkles, Target, Code, Rainbow, UserCheck, Gift, MessageCircle } from "lucide-react";
+import { Heart, Home, ChevronDown, User, LogIn, LogOut, Users, UserPlus, Menu, X, Sparkles, Target, Code, Rainbow, UserCheck, Gift, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -102,7 +102,7 @@ function LanguageContent({ children, currentPageName }) {
   const selectedLanguage = languages.find(lang => lang.code === currentLanguage);
 
   // Get authentication state
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, logout } = useAuth();
 
   const handleMouseEnter = () => {
     if (closeTimeoutRef.current) {
@@ -123,6 +123,11 @@ function LanguageContent({ children, currentPageName }) {
 
   const handleSignUp = () => {
     navigate(createPageUrl("SignUp"));
+  };
+
+  const handleSignOut = () => {
+    logout();
+    navigate(createPageUrl("Home"));
   };
 
   useEffect(() => {
@@ -347,6 +352,20 @@ function LanguageContent({ children, currentPageName }) {
                     <span className="hidden xl:inline ml-2">Chat</span>
                   </Button>
                 </Link>
+              )}
+
+              {/* Sign Out Button - Only show when authenticated */}
+              {isAuthenticated && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="hidden md:flex text-white/80 hover:text-white hover:bg-white/10 whitespace-nowrap"
+                  onClick={handleSignOut}
+                  title="Sign Out"
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  <span className="hidden xl:inline">Sign Out</span>
+                </Button>
               )}
 
               {/* Show Invite, Sign In/Sign Up only when NOT authenticated */}
