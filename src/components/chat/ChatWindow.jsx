@@ -27,6 +27,7 @@ export default function ChatWindow({
   onArchive,
   onPopOut,
   onEditMessage,
+  onDeleteMessage,
   isLoading = false
 }) {
   const messagesEndRef = useRef(null);
@@ -237,9 +238,10 @@ export default function ChatWindow({
                     // TODO: Implement pin functionality
                     console.log('Pin:', msg, isPinned);
                   }}
-                  onDelete={(msg) => {
-                    // TODO: Implement delete functionality
-                    console.log('Delete:', msg);
+                  onDelete={(msg, deleteType) => {
+                    if (onDeleteMessage) {
+                      onDeleteMessage(msg.id, deleteType);
+                    }
                   }}
                   onSelect={(msg) => {
                     // TODO: Implement select functionality

@@ -4,6 +4,7 @@ import { Check, CheckCheck, Clock, Play, Pause, Download, MapPin, FileText, Imag
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 
 const MessageStatus = ({ status, isRead }) => {
@@ -202,6 +203,7 @@ export default function ChatMessage({
   const [showReactions, setShowReactions] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(message.text || '');
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   const formatMessageTime = (timestamp) => {
     if (!timestamp) return '';
@@ -265,10 +267,19 @@ export default function ChatMessage({
   };
 
   const handleDelete = () => {
-    if (window.confirm('Are you sure you want to delete this message?')) {
-      onDelete?.(message);
-      toast.success('Message deleted');
-    }
+    setShowDeleteDialog(true);
+  };
+
+  const handleDeleteForMe = () => {
+    onDelete?.(message, 'me');
+    setShowDeleteDialog(false);
+    toast.success('Message deleted for you');
+  };
+
+  const handleDeleteForEveryone = () => {
+    onDelete?.(message, 'everyone');
+    setShowDeleteDialog(false);
+    toast.success('Message deleted for everyone');
   };
 
   const handleForward = () => {
@@ -541,6 +552,37 @@ export default function ChatMessage({
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent className="bg-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Message</AlertDialogTitle>
+            <AlertDialogDescription>
+              How would you like to delete this message?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel onClick={() => setShowDeleteDialog(false)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteForMe}
+              className="bg-gray-600 hover:bg-gray-700"
+            >
+              Delete for me
+            </AlertDialogAction>
+            {isOwn && (
+              <AlertDialogAction
+                onClick={handleDeleteForEveryone}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                Delete for everyone
+              </AlertDialogAction>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

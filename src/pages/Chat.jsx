@@ -564,6 +564,40 @@ export default function Chat() {
             setSelectedChatId(null);
             toast.success('Chat deleted');
           }}
+          onEditMessage={(messageId, newText) => {
+            setMessages((prev) => ({
+              ...prev,
+              [selectedChatId]: prev[selectedChatId].map((msg) =>
+                msg.id === messageId
+                  ? { ...msg, text: newText, isEdited: true }
+                  : msg
+              ),
+            }));
+            toast.success('Message updated');
+            // TODO: Update message in backend
+            // await base44.entities.ChatMessage.update(messageId, { text: newText, is_edited: true });
+          }}
+          onDeleteMessage={(messageId, deleteType) => {
+            if (deleteType === 'everyone') {
+              // Delete for everyone - remove from messages
+              setMessages((prev) => ({
+                ...prev,
+                [selectedChatId]: prev[selectedChatId].filter((msg) => msg.id !== messageId),
+              }));
+              toast.success('Message deleted for everyone');
+            } else {
+              // Delete for me - mark as deleted but keep in list (or remove based on UX preference)
+              setMessages((prev) => ({
+                ...prev,
+                [selectedChatId]: prev[selectedChatId].map((msg) =>
+                  msg.id === messageId ? { ...msg, deletedForMe: true } : msg
+                ),
+              }));
+              toast.success('Message deleted for you');
+            }
+            // TODO: Update message in backend
+            // await base44.entities.ChatMessage.delete(messageId, { delete_type: deleteType });
+          }}
           onMarkAsUnread={handleMarkAsUnread}
           onPin={handlePin}
           onUnpin={handleUnpin}
