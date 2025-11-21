@@ -12,6 +12,8 @@ import AboutUs from "./AboutUs";
 
 import SignIn from "./SignIn";
 
+import SignUp from "./SignUp";
+
 import MemoryLane from "./MemoryLane";
 
 import LoveNotes from "./LoveNotes";
@@ -109,6 +111,8 @@ const PAGES = {
     AboutUs: AboutUs,
     
     SignIn: SignIn,
+    
+    SignUp: SignUp,
     
     MemoryLane: MemoryLane,
     
@@ -230,6 +234,12 @@ function PagesContent() {
                 <Route path="/AboutUs" element={<AboutUs />} />
                 
                 <Route path="/SignIn" element={<SignIn />} />
+                
+                <Route path="/login" element={<SignIn />} />
+                
+                <Route path="/SignUp" element={<SignUp />} />
+                
+                <Route path="/signup" element={<SignUp />} />
                 
                 <Route path="/MemoryLane" element={<MemoryLane />} />
                 
