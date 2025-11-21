@@ -4,6 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
+import UserProfile from './UserProfile';
 
 export default function ChatWindow({
   chat,
@@ -29,6 +30,7 @@ export default function ChatWindow({
 }) {
   const messagesEndRef = useRef(null);
   const scrollAreaRef = useRef(null);
+  const [showProfile, setShowProfile] = useState(false);
 
   useEffect(() => {
     scrollToBottom();
@@ -123,12 +125,10 @@ export default function ChatWindow({
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-              {onViewProfile && (
-                <DropdownMenuItem onClick={() => onViewProfile(chat.id)}>
-                  <Search className="w-4 h-4 mr-2" />
-                  View Profile
-                </DropdownMenuItem>
-              )}
+              <DropdownMenuItem onClick={() => setShowProfile(true)}>
+                <Search className="w-4 h-4 mr-2" />
+                View Profile
+              </DropdownMenuItem>
               {onSearch && (
                 <DropdownMenuItem onClick={() => onSearch(chat.id)}>
                   <Search className="w-4 h-4 mr-2" />
@@ -234,6 +234,25 @@ export default function ChatWindow({
         onSendFile={handleSendFile}
         onSendLocation={handleSendLocation}
         disabled={isLoading}
+      />
+
+      {/* User Profile Modal */}
+      <UserProfile
+        user={chat}
+        messages={messages}
+        isOpen={showProfile}
+        onClose={() => setShowProfile(false)}
+        onCall={() => {
+          onCall?.(chat.id);
+          setShowProfile(false);
+        }}
+        onVideoCall={() => {
+          onVideoCall?.(chat.id);
+          setShowProfile(false);
+        }}
+        onMessage={() => {
+          setShowProfile(false);
+        }}
       />
     </div>
   );
