@@ -127,6 +127,7 @@ export default function ChatInput({ onSendMessage, onSendFile, onSendLocation, d
       // Check if video is ready
       if (video.readyState !== video.HAVE_ENOUGH_DATA) {
         console.error('Video not ready');
+        toast.error('Camera not ready. Please wait...');
         return;
       }
       
@@ -142,15 +143,17 @@ export default function ChatInput({ onSendMessage, onSendFile, onSendLocation, d
       
       canvas.toBlob((blob) => {
         if (blob && onSendFile) {
-          onSendFile(blob, 'image');
+          // Create a File object with proper name
+          const file = new File([blob], `photo-${Date.now()}.jpg`, { type: 'image/jpeg' });
+          onSendFile(file, 'image');
           toast.success('Photo captured!');
+          stopCamera();
         } else {
           toast.error('Failed to capture photo');
         }
-        stopCamera();
       }, 'image/jpeg', 0.95);
     } else {
-      console.error('Camera not ready', { video: !!videoRef.current, canvas: !!canvasRef.current, stream: !!stream });
+      console.error('Camera not ready', { video: !!videoRef.current, canvas: !!canvasRef.current, stream: !!stream, isRecording: isRecordingVideo });
       toast.error('Camera not ready. Please try again.');
     }
   };
@@ -162,18 +165,27 @@ export default function ChatInput({ onSendMessage, onSendFile, onSendLocation, d
       const chunks = [];
       setRecordedChunks(chunks);
 
+      // Try different MIME types for better browser compatibility
+      let mimeType = 'video/webm;codecs=vp8,opus';
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        mimeType = 'video/webm';
+      }
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        mimeType = 'video/mp4';
+      }
+
       const recorder = new MediaRecorder(stream, {
-        mimeType: 'video/webm;codecs=vp8,opus'
+        mimeType: mimeType
       });
 
       recorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
+        if (event.data && event.data.size > 0) {
           chunks.push(event.data);
         }
       };
 
       recorder.onstop = () => {
-        const blob = new Blob(chunks, { type: 'video/webm' });
+        const blob = new Blob(chunks, { type: mimeType });
         if (blob.size > 0 && onSendFile) {
           onSendFile(blob, 'video');
           toast.success('Video recorded!');
@@ -191,7 +203,7 @@ export default function ChatInput({ onSendMessage, onSendFile, onSendLocation, d
         setIsRecordingVideo(false);
       };
 
-      recorder.start();
+      recorder.start(100); // Collect data every 100ms
       setMediaRecorder(recorder);
       setIsRecordingVideo(true);
       toast.info('Recording...');
@@ -207,38 +219,35 @@ export default function ChatInput({ onSendMessage, onSendFile, onSendLocation, d
     }
   };
 
-  const handleCapturePress = () => {
-    // Start video recording on press
-    recordTimeoutRef.current = setTimeout(() => {
-      startVideoRecording();
-    }, 300); // 300ms delay to distinguish from tap
+  const handleCapturePress = (e) => {
+    e.preventDefault();
+    // Start video recording immediately on press (no delay)
+    startVideoRecording();
   };
 
-  const handleCaptureRelease = () => {
-    // Clear timeout if it hasn't fired yet (quick tap = photo)
-    if (recordTimeoutRef.current) {
-      clearTimeout(recordTimeoutRef.current);
-      recordTimeoutRef.current = null;
-      
-      // If we were recording video, stop it
-      if (isRecordingVideo) {
-        stopVideoRecording();
-      } else {
-        // Quick tap = capture photo
-        capturePhoto();
-      }
-    } else if (isRecordingVideo) {
-      // Release after recording started
+  const handleCaptureRelease = (e) => {
+    e.preventDefault();
+    
+    // If we were recording video, stop it
+    if (isRecordingVideo && mediaRecorder) {
       stopVideoRecording();
+    } else {
+      // Quick tap = capture photo (if recording didn't start)
+      capturePhoto();
+    }
+  };
+
+  const handleCaptureClick = (e) => {
+    e.preventDefault();
+    // Single click = capture photo
+    if (!isRecordingVideo) {
+      capturePhoto();
     }
   };
 
   // Cleanup camera stream on unmount
   useEffect(() => {
     return () => {
-      if (recordTimeoutRef.current) {
-        clearTimeout(recordTimeoutRef.current);
-      }
       if (mediaRecorder && isRecordingVideo) {
         mediaRecorder.stop();
       }
@@ -295,8 +304,10 @@ export default function ChatInput({ onSendMessage, onSendFile, onSendLocation, d
           <button
             onMouseDown={handleCapturePress}
             onMouseUp={handleCaptureRelease}
+            onMouseLeave={handleCaptureRelease}
             onTouchStart={handleCapturePress}
             onTouchEnd={handleCaptureRelease}
+            onClick={handleCaptureClick}
             disabled={!stream}
             className={`w-20 h-20 rounded-full flex items-center justify-center border-4 shadow-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
               isRecordingVideo 
