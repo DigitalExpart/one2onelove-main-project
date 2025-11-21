@@ -6,6 +6,7 @@ import ChatList from '@/components/chat/ChatList';
 import ChatWindow from '@/components/chat/ChatWindow';
 import CallWindow from '@/components/chat/CallWindow';
 import { useLanguage } from '@/Layout';
+import { createPageUrl } from '@/utils';
 
 // Mock data for development - Replace with real API calls
 const mockConversations = [
@@ -18,6 +19,8 @@ const mockConversations = [
     unreadCount: 2,
     isOnline: true,
     isMuted: false,
+    isPinned: false,
+    isArchived: false,
   },
   {
     id: '2',
@@ -28,6 +31,8 @@ const mockConversations = [
     unreadCount: 0,
     isOnline: false,
     isMuted: false,
+    isPinned: false,
+    isArchived: false,
   },
 ];
 
@@ -319,6 +324,61 @@ export default function Chat() {
     }
   };
 
+  const handleMarkAsUnread = (chatId) => {
+    setConversations((prev) =>
+      prev.map((conv) =>
+        conv.id === chatId ? { ...conv, unreadCount: conv.unreadCount + 1 } : conv
+      )
+    );
+    toast.success('Marked as unread');
+  };
+
+  const handlePin = (chatId) => {
+    setConversations((prev) =>
+      prev.map((conv) =>
+        conv.id === chatId ? { ...conv, isPinned: true } : conv
+      )
+    );
+    // Move pinned chat to top
+    setConversations((prev) => {
+      const sorted = [...prev].sort((a, b) => {
+        if (a.isPinned && !b.isPinned) return -1;
+        if (!a.isPinned && b.isPinned) return 1;
+        return 0;
+      });
+      return sorted;
+    });
+    toast.success('Chat pinned');
+  };
+
+  const handleUnpin = (chatId) => {
+    setConversations((prev) =>
+      prev.map((conv) =>
+        conv.id === chatId ? { ...conv, isPinned: false } : conv
+      )
+    );
+    toast.success('Chat unpinned');
+  };
+
+  const handleArchive = (chatId) => {
+    setConversations((prev) =>
+      prev.map((conv) =>
+        conv.id === chatId ? { ...conv, isArchived: true } : conv
+      )
+    );
+    if (selectedChatId === chatId) {
+      setSelectedChatId(null);
+    }
+    toast.success('Chat archived');
+  };
+
+  const handlePopOut = (chatId) => {
+    // Open chat in new window
+    const chatUrl = `${window.location.origin}${createPageUrl('Chat')}?chat=${chatId}`;
+    window.open(chatUrl, '_blank', 'width=800,height=600');
+    toast.info('Chat opened in new window');
+  };
+
   const handleCall = (chatId) => {
     const chat = conversations.find((c) => c.id === chatId);
     setCurrentCall({
@@ -368,7 +428,7 @@ export default function Chat() {
   const selectedChat = conversations.find((c) => c.id === selectedChatId);
 
   return (
-    <div className="h-screen flex bg-gray-50">
+    <div className="fixed inset-0 flex bg-gray-50 z-50">
       {/* Chat List - Hidden on mobile when chat is selected */}
       <div
         className={`
@@ -382,9 +442,7 @@ export default function Chat() {
           onSelectChat={handleSelectChat}
           onCall={handleCall}
           onVideoCall={handleVideoCall}
-          onArchive={(chatId) => {
-            toast.info('Archive feature coming soon');
-          }}
+          onArchive={handleArchive}
           onDelete={(chatId) => {
             setConversations((prev) => prev.filter((c) => c.id !== chatId));
             if (selectedChatId === chatId) {
@@ -399,6 +457,9 @@ export default function Chat() {
               )
             );
           }}
+          onPin={handlePin}
+          onUnpin={handleUnpin}
+          onMarkAsUnread={handleMarkAsUnread}
         />
       </div>
 
@@ -435,6 +496,11 @@ export default function Chat() {
             setSelectedChatId(null);
             toast.success('Chat deleted');
           }}
+          onMarkAsUnread={handleMarkAsUnread}
+          onPin={handlePin}
+          onUnpin={handleUnpin}
+          onArchive={handleArchive}
+          onPopOut={handlePopOut}
         />
       </div>
 

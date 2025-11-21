@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Phone, Video, MoreVertical, ArrowLeft, Search } from 'lucide-react';
+import { Phone, Video, MoreVertical, ArrowLeft, Search, MessageSquare, Pin, PinOff, Archive, Trash2, Maximize2, X } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
 
@@ -20,6 +20,11 @@ export default function ChatWindow({
   onSearch,
   onClearChat,
   onDeleteChat,
+  onMarkAsUnread,
+  onPin,
+  onUnpin,
+  onArchive,
+  onPopOut,
   isLoading = false
 }) {
   const messagesEndRef = useRef(null);
@@ -117,34 +122,67 @@ export default function ChatWindow({
                 <MoreVertical className="w-5 h-5 text-gray-600" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" className="w-56">
               {onViewProfile && (
                 <DropdownMenuItem onClick={() => onViewProfile(chat.id)}>
+                  <Search className="w-4 h-4 mr-2" />
                   View Profile
                 </DropdownMenuItem>
               )}
               {onSearch && (
                 <DropdownMenuItem onClick={() => onSearch(chat.id)}>
+                  <Search className="w-4 h-4 mr-2" />
                   Search
                 </DropdownMenuItem>
               )}
-              {onMute && (
-                <DropdownMenuItem onClick={() => onMute(chat.id)}>
-                  {chat.isMuted ? '🔊 Unmute' : '🔇 Mute'}
+              <DropdownMenuSeparator />
+              {onMarkAsUnread && (
+                <DropdownMenuItem onClick={() => onMarkAsUnread(chat.id)}>
+                  <MessageSquare className="w-4 h-4 mr-2" />
+                  Mark as unread
                 </DropdownMenuItem>
               )}
+              {chat.isPinned && onUnpin ? (
+                <DropdownMenuItem onClick={() => onUnpin(chat.id)}>
+                  <PinOff className="w-4 h-4 mr-2" />
+                  Unpin
+                </DropdownMenuItem>
+              ) : onPin && (
+                <DropdownMenuItem onClick={() => onPin(chat.id)}>
+                  <Pin className="w-4 h-4 mr-2" />
+                  Pin
+                </DropdownMenuItem>
+              )}
+              {onArchive && (
+                <DropdownMenuItem onClick={() => onArchive(chat.id)}>
+                  <Archive className="w-4 h-4 mr-2" />
+                  Archive
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuSeparator />
               {onClearChat && (
                 <DropdownMenuItem onClick={() => onClearChat(chat.id)}>
-                  Clear Chat
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Clear messages
                 </DropdownMenuItem>
               )}
               {onDeleteChat && (
                 <DropdownMenuItem 
                   onClick={() => onDeleteChat(chat.id)}
-                  className="text-red-600"
+                  className="text-red-600 focus:text-red-600"
                 >
-                  Delete Chat
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete
                 </DropdownMenuItem>
+              )}
+              {onPopOut && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => onPopOut(chat.id)}>
+                    <Maximize2 className="w-4 h-4 mr-2" />
+                    Pop-out chat
+                  </DropdownMenuItem>
+                </>
               )}
             </DropdownMenuContent>
           </DropdownMenu>

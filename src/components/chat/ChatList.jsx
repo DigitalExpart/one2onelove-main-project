@@ -1,9 +1,9 @@
 import React from 'react';
 import { format, isToday, isYesterday } from 'date-fns';
-import { Search, MoreVertical, Phone, Video, CheckCheck } from 'lucide-react';
+import { Search, MoreVertical, Phone, Video, CheckCheck, Pin, PinOff, Archive, Trash2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 
 export default function ChatList({ 
@@ -15,7 +15,10 @@ export default function ChatList({
   onVideoCall,
   onArchive,
   onDelete,
-  onMute
+  onMute,
+  onPin,
+  onUnpin,
+  onMarkAsUnread
 }) {
   const [searchQuery, setSearchQuery] = React.useState('');
 
@@ -133,7 +136,7 @@ export default function ChatList({
                     <MoreVertical className="w-4 h-4 text-gray-600" />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
+                <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onCall?.(chat.id); }}>
                     <Phone className="w-4 h-4 mr-2" />
                     Voice Call
@@ -142,16 +145,36 @@ export default function ChatList({
                     <Video className="w-4 h-4 mr-2" />
                     Video Call
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onMute?.(chat.id); }}>
-                    {chat.isMuted ? '🔊 Unmute' : '🔇 Mute'}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onArchive?.(chat.id); }}>
-                    Archive
-                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  {onMarkAsUnread && (
+                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onMarkAsUnread(chat.id); }}>
+                      <CheckCheck className="w-4 h-4 mr-2" />
+                      Mark as unread
+                    </DropdownMenuItem>
+                  )}
+                  {chat.isPinned && onUnpin ? (
+                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onUnpin(chat.id); }}>
+                      <PinOff className="w-4 h-4 mr-2" />
+                      Unpin
+                    </DropdownMenuItem>
+                  ) : onPin && (
+                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onPin(chat.id); }}>
+                      <Pin className="w-4 h-4 mr-2" />
+                      Pin
+                    </DropdownMenuItem>
+                  )}
+                  {onArchive && (
+                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onArchive(chat.id); }}>
+                      <Archive className="w-4 h-4 mr-2" />
+                      Archive
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem 
                     onClick={(e) => { e.stopPropagation(); onDelete?.(chat.id); }}
-                    className="text-red-600"
+                    className="text-red-600 focus:text-red-600"
                   >
+                    <Trash2 className="w-4 h-4 mr-2" />
                     Delete
                   </DropdownMenuItem>
                 </DropdownMenuContent>
