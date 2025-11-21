@@ -120,6 +120,15 @@ export default function ChatInput({ onSendMessage, onSendFile, onSendLocation, d
     }
   };
 
+  // Cleanup camera stream on unmount
+  useEffect(() => {
+    return () => {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [stream]);
+
   if (showVoiceRecorder) {
     return (
       <div className="border-t border-gray-200 p-4 bg-white">
