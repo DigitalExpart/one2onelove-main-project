@@ -219,12 +219,6 @@ function _getCurrentPage(url) {
 function PagesContent() {
     const location = useLocation();
     const currentPage = _getCurrentPage(location.pathname);
-    const isChatPage = location.pathname.toLowerCase().includes('/chat');
-    
-    // Chat page should be full view without Layout
-    if (isChatPage) {
-        return <Chat />;
-    }
     
     return (
         <Layout currentPageName={currentPage}>

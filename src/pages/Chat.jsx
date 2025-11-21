@@ -444,7 +444,7 @@ export default function Chat() {
   const selectedChat = conversations.find((c) => c.id === selectedChatId);
 
   return (
-    <div className="fixed inset-0 flex bg-gray-50 z-50">
+    <div className="h-[calc(100vh-4rem)] flex bg-gray-50">
       {/* Chat List - Hidden on mobile when chat is selected */}
       <div
         className={`
