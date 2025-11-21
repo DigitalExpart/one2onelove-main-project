@@ -452,6 +452,20 @@ function LanguageContent({ children, currentPageName }) {
                 </SelectContent>
               </Select>
 
+              {/* Sign Out Button - Only show when authenticated, after language dropdown */}
+              {isAuthenticated && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="hidden md:flex text-white/80 hover:text-white hover:bg-white/10 whitespace-nowrap"
+                  onClick={handleSignOut}
+                  title="Sign Out"
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  <span className="hidden xl:inline">Sign Out</span>
+                </Button>
+              )}
+
               {/* Mobile menu button */}
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
