@@ -527,6 +527,20 @@ function LanguageContent({ children, currentPageName }) {
                     Chat
                   </Link>
                 )}
+
+                {/* Sign Out - Only show when authenticated */}
+                {isAuthenticated && (
+                  <button
+                    onClick={() => {
+                      handleSignOut();
+                      setMobileMenuOpen(false);
+                    }}
+                    className="flex items-center gap-2 text-white hover:bg-white/10 px-4 py-3 rounded-lg transition-all w-full text-left"
+                  >
+                    <LogOut className="w-5 h-5" />
+                    Sign Out
+                  </button>
+                )}
                 
                 {/* Show Invite, Sign In/Sign Up only when NOT authenticated */}
                 {!isAuthenticated && (
