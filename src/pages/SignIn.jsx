@@ -50,20 +50,26 @@ export default function SignIn() {
     }
 
     setIsLoading(true);
+    console.log('Sign in form submitted');
 
     try {
       const result = await login(email, password);
+      console.log('Login result:', result);
       
-      if (result.success) {
+      if (result && result.success) {
         toast.success("Successfully signed in!");
-        // Redirect to Dashboard
-        navigate(createPageUrl("Dashboard"));
+        // Small delay to ensure state is updated
+        setTimeout(() => {
+          navigate(createPageUrl("Dashboard"));
+        }, 100);
       } else {
-        toast.error(result.error || "Invalid email or password. Please try again.");
+        const errorMessage = result?.error || "Invalid email or password. Please try again.";
+        console.error('Login failed:', errorMessage);
+        toast.error(errorMessage);
       }
     } catch (error) {
       console.error("Login error:", error);
-      toast.error("An error occurred. Please try again.");
+      toast.error(error.message || "An error occurred. Please try again.");
     } finally {
       setIsLoading(false);
     }

@@ -108,80 +108,100 @@ export function AuthProvider({ children }) {
 
   const login = async (email, password) => {
     try {
+      console.log('Attempting login for:', email);
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) {
+        console.error('Supabase auth error:', error);
         return { success: false, error: handleSupabaseError(error) };
       }
 
-      if (data?.user) {
-        // Fetch user profile
-        const { data: profile, error: profileError } = await supabase
+      if (!data?.user) {
+        console.error('No user data returned from Supabase');
+        return { success: false, error: 'Login failed: No user data received' };
+      }
+
+      console.log('Auth successful, fetching profile for user:', data.user.id);
+
+      // Fetch user profile
+      const { data: profile, error: profileError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', data.user.id)
+        .single();
+
+      // If profile doesn't exist, create it
+      if (profileError && profileError.code === 'PGRST116') {
+        console.log('Profile not found, creating new profile');
+        // Profile doesn't exist, create it
+        const { data: newProfile, error: createError } = await supabase
           .from('users')
-          .select('*')
-          .eq('id', data.user.id)
+          .insert({
+            id: data.user.id,
+            email: data.user.email,
+            name: data.user.user_metadata?.name || data.user.email?.split('@')[0],
+            user_type: data.user.user_metadata?.user_type || 'regular',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .select()
           .single();
 
-        // If profile doesn't exist, create it
-        if (profileError && profileError.code === 'PGRST116') {
-          // Profile doesn't exist, create it
-          const { data: newProfile, error: createError } = await supabase
-            .from('users')
-            .insert({
-              id: data.user.id,
-              email: data.user.email,
-              name: data.user.user_metadata?.name || data.user.email?.split('@')[0],
-              user_type: data.user.user_metadata?.user_type || 'regular',
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            })
-            .select()
-            .single();
-
-          if (createError) {
-            console.error('Error creating missing profile:', createError);
-            // Still allow login even if profile creation fails
-            const userData = {
-              id: data.user.id,
-              email: data.user.email,
-              name: data.user.user_metadata?.name || data.user.email?.split('@')[0],
-              user_type: data.user.user_metadata?.user_type || 'regular',
-            };
-            setUser(userData);
-            return { success: true, user: userData };
-          }
-
+        if (createError) {
+          console.error('Error creating missing profile:', createError);
+          // Still allow login even if profile creation fails
           const userData = {
             id: data.user.id,
             email: data.user.email,
-            ...newProfile,
-            name: newProfile?.name || data.user.user_metadata?.name || data.user.email?.split('@')[0],
+            name: data.user.user_metadata?.name || data.user.email?.split('@')[0],
+            user_type: data.user.user_metadata?.user_type || 'regular',
           };
-
           setUser(userData);
+          console.log('Login successful (profile creation failed)');
           return { success: true, user: userData };
-        } else if (profileError) {
-          console.error('Error fetching user profile:', profileError);
         }
 
         const userData = {
           id: data.user.id,
           email: data.user.email,
-          ...profile,
-          name: profile?.name || data.user.user_metadata?.name || data.user.email?.split('@')[0],
+          ...newProfile,
+          name: newProfile?.name || data.user.user_metadata?.name || data.user.email?.split('@')[0],
         };
 
         setUser(userData);
+        console.log('Login successful (profile created)');
+        return { success: true, user: userData };
+      } else if (profileError) {
+        console.error('Error fetching user profile:', profileError);
+        // Still allow login with basic user data
+        const userData = {
+          id: data.user.id,
+          email: data.user.email,
+          name: data.user.user_metadata?.name || data.user.email?.split('@')[0],
+          user_type: data.user.user_metadata?.user_type || 'regular',
+        };
+        setUser(userData);
+        console.log('Login successful (profile fetch failed)');
         return { success: true, user: userData };
       }
 
-      return { success: false, error: 'Login failed' };
+      const userData = {
+        id: data.user.id,
+        email: data.user.email,
+        ...profile,
+        name: profile?.name || data.user.user_metadata?.name || data.user.email?.split('@')[0],
+      };
+
+      setUser(userData);
+      console.log('Login successful');
+      return { success: true, user: userData };
     } catch (error) {
       console.error('Login error:', error);
-      return { success: false, error: handleSupabaseError(error) };
+      return { success: false, error: error.message || handleSupabaseError(error) };
     }
   };
 

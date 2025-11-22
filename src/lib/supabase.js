@@ -35,8 +35,25 @@ export const handleSupabaseError = (error) => {
         return 'Invalid reference data';
       case 'PGRST116': // Not found
         return 'Resource not found';
+      case 'invalid_credentials':
+        return 'Invalid email or password';
+      case 'email_not_confirmed':
+        return 'Please verify your email address before signing in';
+      case 'too_many_requests':
+        return 'Too many login attempts. Please try again later';
       default:
         return error.message || 'An error occurred';
+    }
+  }
+  
+  // Handle common Supabase auth error messages
+  if (error.message) {
+    const lowerMessage = error.message.toLowerCase();
+    if (lowerMessage.includes('invalid login credentials') || lowerMessage.includes('invalid password')) {
+      return 'Invalid email or password';
+    }
+    if (lowerMessage.includes('email not confirmed')) {
+      return 'Please verify your email address before signing in';
     }
   }
   
