@@ -56,20 +56,46 @@ export function AuthProvider({ children }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session?.user) {
         // Fetch user profile
-        const { data: profile } = await supabase
+        const { data: profile, error: profileError } = await supabase
           .from('users')
           .select('*')
           .eq('id', session.user.id)
           .single();
 
-        const userData = {
-          id: session.user.id,
-          email: session.user.email,
-          ...profile,
-          name: profile?.name || session.user.user_metadata?.name || session.user.email?.split('@')[0],
-        };
+        // If profile doesn't exist, create it
+        if (profileError && profileError.code === 'PGRST116') {
+          // Profile doesn't exist, create it
+          const { data: newProfile } = await supabase
+            .from('users')
+            .insert({
+              id: session.user.id,
+              email: session.user.email,
+              name: session.user.user_metadata?.name || session.user.email?.split('@')[0],
+              user_type: session.user.user_metadata?.user_type || 'regular',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            })
+            .select()
+            .single();
 
-        setUser(userData);
+          const userData = {
+            id: session.user.id,
+            email: session.user.email,
+            ...newProfile,
+            name: newProfile?.name || session.user.user_metadata?.name || session.user.email?.split('@')[0],
+          };
+
+          setUser(userData);
+        } else if (profile) {
+          const userData = {
+            id: session.user.id,
+            email: session.user.email,
+            ...profile,
+            name: profile?.name || session.user.user_metadata?.name || session.user.email?.split('@')[0],
+          };
+
+          setUser(userData);
+        }
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
       }
@@ -174,7 +200,11 @@ export function AuthProvider({ children }) {
         if (profileError) {
           console.error('Error creating user profile:', profileError);
           // User is created in auth but profile creation failed
-          // They can still log in, but profile will be incomplete
+          // Return error so user knows something went wrong
+          return { 
+            success: false, 
+            error: `Account created but profile setup failed: ${handleSupabaseError(profileError)}. Please contact support.` 
+          };
         }
 
         const newUser = {
