@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabase, handleSupabaseError } from '@/lib/supabase';
 
 const AuthContext = createContext(null);
 
@@ -8,77 +9,423 @@ export function AuthProvider({ children }) {
 
   // Check for existing session on mount
   useEffect(() => {
-    const checkAuth = () => {
+    const checkAuth = async () => {
       try {
-        const storedUser = localStorage.getItem('user');
-        const isAuthenticated = localStorage.getItem('isAuthenticated');
+        // Get current session from Supabase
+        const { data: { session }, error } = await supabase.auth.getSession();
         
-        if (isAuthenticated === 'true' && storedUser) {
-          setUser(JSON.parse(storedUser));
+        if (error) {
+          console.error('Error getting session:', error);
+          setIsLoading(false);
+          return;
+        }
+
+        if (session?.user) {
+          // Fetch user profile from database
+          const { data: profile, error: profileError } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+
+          if (profileError && profileError.code !== 'PGRST116') {
+            console.error('Error fetching user profile:', profileError);
+          }
+
+          // Combine auth user with profile data
+          const userData = {
+            id: session.user.id,
+            email: session.user.email,
+            ...profile,
+            // Fallback to auth metadata if profile doesn't exist yet
+            name: profile?.name || session.user.user_metadata?.name || session.user.email?.split('@')[0],
+          };
+
+          setUser(userData);
         }
       } catch (error) {
         console.error('Error checking auth:', error);
-        localStorage.removeItem('user');
-        localStorage.removeItem('isAuthenticated');
       } finally {
         setIsLoading(false);
       }
     };
 
     checkAuth();
+
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        // Fetch user profile
+        const { data: profile } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+
+        const userData = {
+          id: session.user.id,
+          email: session.user.email,
+          ...profile,
+          name: profile?.name || session.user.user_metadata?.name || session.user.email?.split('@')[0],
+        };
+
+        setUser(userData);
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const login = async (email, password) => {
     try {
-      // TODO: Replace with actual API call to your backend
-      // For now, simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      
-      // Mock user data - replace with actual API response
-      const userData = {
-        id: Date.now().toString(),
-        email: email,
-        name: email.split('@')[0], // Use email prefix as name
-        createdAt: new Date().toISOString(),
-      };
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-      // Store in localStorage
-      localStorage.setItem('isAuthenticated', 'true');
-      localStorage.setItem('user', JSON.stringify(userData));
-      
-      setUser(userData);
-      return { success: true, user: userData };
+      if (error) {
+        return { success: false, error: handleSupabaseError(error) };
+      }
+
+      if (data?.user) {
+        // Fetch user profile
+        const { data: profile } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', data.user.id)
+          .single();
+
+        const userData = {
+          id: data.user.id,
+          email: data.user.email,
+          ...profile,
+          name: profile?.name || data.user.user_metadata?.name || data.user.email?.split('@')[0],
+        };
+
+        setUser(userData);
+        return { success: true, user: userData };
+      }
+
+      return { success: false, error: 'Login failed' };
     } catch (error) {
       console.error('Login error:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: handleSupabaseError(error) };
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem('isAuthenticated');
-    localStorage.removeItem('user');
-    setUser(null);
+  const logout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Logout error:', error);
+      }
+      setUser(null);
+    } catch (error) {
+      console.error('Logout error:', error);
+      setUser(null);
+    }
   };
 
   const register = async (userData) => {
     try {
-      // TODO: Replace with actual API call to your backend
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      
-      const newUser = {
-        id: Date.now().toString(),
-        ...userData,
-        createdAt: new Date().toISOString(),
-      };
+      const { email, password, name, relationshipStatus, anniversaryDate, partnerEmail } = userData;
 
-      localStorage.setItem('isAuthenticated', 'true');
-      localStorage.setItem('user', JSON.stringify(newUser));
-      
-      setUser(newUser);
-      return { success: true, user: newUser };
+      // Sign up with Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name: name,
+            relationship_status: relationshipStatus,
+            anniversary_date: anniversaryDate,
+            partner_email: partnerEmail,
+          },
+        },
+      });
+
+      if (authError) {
+        return { success: false, error: handleSupabaseError(authError) };
+      }
+
+      if (authData?.user) {
+        // Create user profile in database
+        // user_type defaults to 'regular' for regular user signups
+        const { data: profile, error: profileError } = await supabase
+          .from('users')
+          .insert({
+            id: authData.user.id,
+            email: email,
+            name: name,
+            user_type: 'regular', // Set user type for regular users
+            relationship_status: relationshipStatus || null,
+            anniversary_date: anniversaryDate || null,
+            partner_email: partnerEmail || null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .select()
+          .single();
+
+        if (profileError) {
+          console.error('Error creating user profile:', profileError);
+          // User is created in auth but profile creation failed
+          // They can still log in, but profile will be incomplete
+        }
+
+        const newUser = {
+          id: authData.user.id,
+          email: authData.user.email,
+          name: name,
+          relationship_status: relationshipStatus,
+          anniversary_date: anniversaryDate,
+          partner_email: partnerEmail,
+          ...profile,
+        };
+
+        setUser(newUser);
+        return { success: true, user: newUser };
+      }
+
+      return { success: false, error: 'Registration failed' };
     } catch (error) {
       console.error('Registration error:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: handleSupabaseError(error) };
+    }
+  };
+
+  const registerTherapist = async (userData, therapistData) => {
+    try {
+      const { email, password, firstName, lastName } = userData;
+      const fullName = `${firstName} ${lastName}`;
+
+      // Sign up with Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name: fullName,
+            user_type: 'therapist',
+          },
+        },
+      });
+
+      if (authError) {
+        return { success: false, error: handleSupabaseError(authError) };
+      }
+
+      if (authData?.user) {
+        // Create user profile in database with therapist type
+        const { data: userProfile, error: profileError } = await supabase
+          .from('users')
+          .insert({
+            id: authData.user.id,
+            email: email,
+            name: fullName,
+            user_type: 'therapist',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .select()
+          .single();
+
+        if (profileError) {
+          console.error('Error creating user profile:', profileError);
+          // Continue anyway - therapist profile can still be created
+        }
+
+        // Create therapist profile
+        const { createTherapistProfile } = await import('@/lib/therapistService');
+        const therapistResult = await createTherapistProfile(authData.user.id, {
+          ...therapistData,
+          firstName,
+          lastName,
+          email,
+          emailVerified: therapistData.emailVerified || false,
+          phoneVerified: therapistData.phoneVerified || false,
+        });
+
+        if (!therapistResult.success) {
+          console.error('Error creating therapist profile:', therapistResult.error);
+          // User account is created but therapist profile failed
+          // They can log in but profile will be incomplete
+        }
+
+        const newUser = {
+          id: authData.user.id,
+          email: authData.user.email,
+          name: fullName,
+          user_type: 'therapist',
+          ...userProfile,
+        };
+
+        setUser(newUser);
+        return { success: true, user: newUser };
+      }
+
+      return { success: false, error: 'Registration failed' };
+    } catch (error) {
+      console.error('Therapist registration error:', error);
+      return { success: false, error: handleSupabaseError(error) };
+    }
+  };
+
+  const registerInfluencer = async (userData, influencerData) => {
+    try {
+      const { email, password, firstName, lastName } = userData;
+      const fullName = `${firstName} ${lastName}`;
+
+      // Sign up with Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name: fullName,
+            user_type: 'influencer',
+          },
+        },
+      });
+
+      if (authError) {
+        return { success: false, error: handleSupabaseError(authError) };
+      }
+
+      if (authData?.user) {
+        // Create user profile in database with influencer type
+        const { data: userProfile, error: profileError } = await supabase
+          .from('users')
+          .insert({
+            id: authData.user.id,
+            email: email,
+            name: fullName,
+            user_type: 'influencer',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .select()
+          .single();
+
+        if (profileError) {
+          console.error('Error creating user profile:', profileError);
+          // Continue anyway - influencer profile can still be created
+        }
+
+        // Create influencer profile
+        const { createInfluencerProfile } = await import('@/lib/influencerService');
+        const influencerResult = await createInfluencerProfile(authData.user.id, {
+          ...influencerData,
+          firstName,
+          lastName,
+          email,
+          emailVerified: influencerData.emailVerified || false,
+          phoneVerified: influencerData.phoneVerified || false,
+        });
+
+        if (!influencerResult.success) {
+          console.error('Error creating influencer profile:', influencerResult.error);
+          // User account is created but influencer profile failed
+          // They can log in but profile will be incomplete
+        }
+
+        const newUser = {
+          id: authData.user.id,
+          email: authData.user.email,
+          name: fullName,
+          user_type: 'influencer',
+          ...userProfile,
+        };
+
+        setUser(newUser);
+        return { success: true, user: newUser };
+      }
+
+      return { success: false, error: 'Registration failed' };
+    } catch (error) {
+      console.error('Influencer registration error:', error);
+      return { success: false, error: handleSupabaseError(error) };
+    }
+  };
+
+  const registerProfessional = async (userData, professionalData) => {
+    try {
+      const { email, password, firstName, lastName } = userData;
+      const fullName = `${firstName} ${lastName}`;
+
+      // Sign up with Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name: fullName,
+            user_type: 'professional',
+          },
+        },
+      });
+
+      if (authError) {
+        return { success: false, error: handleSupabaseError(authError) };
+      }
+
+      if (authData?.user) {
+        // Create user profile in database with professional type
+        const { data: userProfile, error: profileError } = await supabase
+          .from('users')
+          .insert({
+            id: authData.user.id,
+            email: email,
+            name: fullName,
+            user_type: 'professional',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .select()
+          .single();
+
+        if (profileError) {
+          console.error('Error creating user profile:', profileError);
+          // Continue anyway - professional profile can still be created
+        }
+
+        // Create professional profile
+        const { createProfessionalProfile } = await import('@/lib/professionalService');
+        const professionalResult = await createProfessionalProfile(authData.user.id, {
+          ...professionalData,
+          firstName,
+          lastName,
+          email,
+          emailVerified: professionalData.emailVerified || false,
+          phoneVerified: professionalData.phoneVerified || false,
+        });
+
+        if (!professionalResult.success) {
+          console.error('Error creating professional profile:', professionalResult.error);
+          // User account is created but professional profile failed
+          // They can log in but profile will be incomplete
+        }
+
+        const newUser = {
+          id: authData.user.id,
+          email: authData.user.email,
+          name: fullName,
+          user_type: 'professional',
+          ...userProfile,
+        };
+
+        setUser(newUser);
+        return { success: true, user: newUser };
+      }
+
+      return { success: false, error: 'Registration failed' };
+    } catch (error) {
+      console.error('Professional registration error:', error);
+      return { success: false, error: handleSupabaseError(error) };
     }
   };
 
@@ -89,6 +436,9 @@ export function AuthProvider({ children }) {
     login,
     logout,
     register,
+    registerTherapist,
+    registerInfluencer,
+    registerProfessional,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

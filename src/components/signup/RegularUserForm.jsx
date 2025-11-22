@@ -199,6 +199,7 @@ export default function RegularUserForm({ onBack }) {
       const result = await register({
         name: formData.fullName,
         email: formData.email,
+        password: formData.password,
         relationshipStatus: formData.relationshipStatus,
         anniversaryDate: formData.anniversaryDate,
         partnerEmail: formData.partnerEmail,

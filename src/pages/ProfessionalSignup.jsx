@@ -1,10 +1,12 @@
 
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
-import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Heart, Loader2, CheckCircle, User, Mail, Phone, Check, Building } from "lucide-react";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
+import { createPageUrl } from "@/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/lib/supabase";
 import OtherUserSignupForm from "../components/signup/OtherUserSignupForm";
 import ProfilePhotoUpload from "../components/signup/ProfilePhotoUpload";
 
@@ -36,6 +38,9 @@ export default function ProfessionalSignup() {
   const [otherUserBio, setOtherUserBio] = useState("");
 
   const [signupComplete, setSignupComplete] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const { registerProfessional } = useAuth();
+  const navigate = useNavigate();
 
   // Verification handlers
   const handleSendEmailVerification = () => {
@@ -70,42 +75,39 @@ export default function ProfessionalSignup() {
     }
   };
 
-  const signupMutation = useMutation({
-    mutationFn: async (data) => {
-      let photoUrl = null;
-      
-      // Upload photo if provided
-      if (photoFile) {
-        setUploadingPhoto(true);
-        try {
-          const uploadResult = await base44.integrations.Core.UploadFile({ file: photoFile });
-          photoUrl = uploadResult.file_url;
-        } catch (error) {
-          toast.error("Failed to upload photo");
-          throw error;
-        } finally {
-          setUploadingPhoto(false);
-        }
-      }
-      
-      // Create profile with photo URL
-      return base44.entities.ProfessionalProfile.create({
-        ...data,
-        profile_photo_url: photoUrl
-      });
-    },
-    onSuccess: () => {
-      setSignupComplete(true);
-      toast.success("🎉 Professional profile submitted successfully!");
-    },
-    onError: (error) => {
-      toast.error("Signup failed", {
-        description: "Please try again or contact support."
-      });
-    }
-  });
+  // Upload photo to Supabase Storage
+  const uploadPhoto = async (file) => {
+    if (!file) return null;
 
-  const handleSubmit = (e) => {
+    try {
+      setUploadingPhoto(true);
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `professional-profiles/${fileName}`;
+
+      // Upload to Supabase Storage
+      const { data, error } = await supabase.storage
+        .from('professional-photos')
+        .upload(filePath, file);
+
+      if (error) throw error;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('professional-photos')
+        .getPublicUrl(filePath);
+
+      return publicUrl;
+    } catch (error) {
+      console.error('Error uploading photo:', error);
+      toast.error("Failed to upload photo. You can add it later.");
+      return null;
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     // Validate verifications
@@ -114,25 +116,85 @@ export default function ProfessionalSignup() {
       return;
     }
 
+    // Validate required fields
+    if (!organizationName || !organizationName.trim()) {
+      toast.error("Please enter your practice/organization name");
+      return;
+    }
+
     if (!organizationType) {
       toast.error("Please select your practice type");
       return;
     }
 
-    const profileData = {
-      first_name: firstName,
-      last_name: lastName,
-      email: email,
-      phone: phone,
-      organization_name: organizationName,
-      organization_type: organizationType,
-      website_url: websiteUrl,
-      service_description: serviceDescription,
-      bio: otherUserBio,
-      status: "pending"
-    };
+    if (!serviceDescription || !serviceDescription.trim()) {
+      toast.error("Please describe the services you offer");
+      return;
+    }
 
-    signupMutation.mutate(profileData);
+    if (serviceDescription.length > 500) {
+      toast.error("Service description must be 500 characters or less");
+      return;
+    }
+
+    if (!otherUserBio || otherUserBio.length < 100) {
+      toast.error("Professional bio must be at least 100 characters");
+      return;
+    }
+
+    if (otherUserBio.length > 1000) {
+      toast.error("Professional bio must be 1000 characters or less");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // Upload photo if provided
+      let photoUrl = null;
+      if (photoFile) {
+        photoUrl = await uploadPhoto(photoFile);
+      }
+
+      // Generate a temporary password (professional will need to set their own via email)
+      const tempPassword = `Temp${Math.random().toString(36).slice(-8)}!`;
+
+      // Register professional account
+      const result = await registerProfessional(
+        {
+          email,
+          password: tempPassword, // In production, send password reset email instead
+          firstName,
+          lastName,
+        },
+        {
+          firstName,
+          lastName,
+          phone,
+          organizationName,
+          practiceType: organizationType,
+          serviceDescription,
+          websiteUrl,
+          professionalBio: otherUserBio,
+          profilePhotoUrl: photoUrl,
+          emailVerified,
+          phoneVerified,
+        }
+      );
+
+      if (result.success) {
+        setSignupComplete(true);
+        toast.success("🎉 Professional application submitted successfully!");
+        // Note: In production, you'd send a password setup email here
+      } else {
+        toast.error(result.error || "Failed to submit application. Please try again.");
+      }
+    } catch (error) {
+      console.error('Signup error:', error);
+      toast.error("Something went wrong. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (signupComplete) {
@@ -371,11 +433,11 @@ export default function ProfessionalSignup() {
           <div className="flex justify-center">
             <Button
               type="submit"
-              disabled={signupMutation.isPending || uploadingPhoto}
+              disabled={isLoading || uploadingPhoto}
               size="lg"
               className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white text-lg px-12 py-6 h-auto shadow-xl"
             >
-              {signupMutation.isPending || uploadingPhoto ? (
+              {isLoading || uploadingPhoto ? (
                 <>
                   <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                   {uploadingPhoto ? "Uploading Photo..." : "Submitting..."}

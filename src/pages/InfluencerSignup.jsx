@@ -1,11 +1,12 @@
 
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
-import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Heart, Loader2, CheckCircle, User, Mail, Phone, Check } from "lucide-react";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
+import { createPageUrl } from "@/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/lib/supabase";
 import InfluencerSignupForm from "../components/signup/InfluencerSignupForm";
 import ProfilePhotoUpload from "../components/signup/ProfilePhotoUpload";
 
@@ -38,6 +39,9 @@ export default function InfluencerSignup() {
   const [influencerBio, setInfluencerBio] = useState("");
 
   const [signupComplete, setSignupComplete] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const { registerInfluencer } = useAuth();
+  const navigate = useNavigate();
 
   // Verification handlers
   const handleSendEmailVerification = () => {
@@ -72,42 +76,39 @@ export default function InfluencerSignup() {
     }
   };
 
-  const signupMutation = useMutation({
-    mutationFn: async (data) => {
-      let photoUrl = null;
-      
-      // Upload photo if provided
-      if (photoFile) {
-        setUploadingPhoto(true);
-        try {
-          const uploadResult = await base44.integrations.Core.UploadFile({ file: photoFile });
-          photoUrl = uploadResult.file_url;
-        } catch (error) {
-          toast.error("Failed to upload photo");
-          throw error;
-        } finally {
-          setUploadingPhoto(false);
-        }
-      }
-      
-      // Create profile with photo URL
-      return base44.entities.InfluencerProfile.create({
-        ...data,
-        profile_photo_url: photoUrl
-      });
-    },
-    onSuccess: () => {
-      setSignupComplete(true);
-      toast.success("🎉 Influencer profile submitted successfully!");
-    },
-    onError: (error) => {
-      toast.error("Signup failed", {
-        description: "Please try again or contact support."
-      });
-    }
-  });
+  // Upload photo to Supabase Storage
+  const uploadPhoto = async (file) => {
+    if (!file) return null;
 
-  const handleSubmit = (e) => {
+    try {
+      setUploadingPhoto(true);
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `influencer-profiles/${fileName}`;
+
+      // Upload to Supabase Storage
+      const { data, error } = await supabase.storage
+        .from('influencer-photos')
+        .upload(filePath, file);
+
+      if (error) throw error;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('influencer-photos')
+        .getPublicUrl(filePath);
+
+      return publicUrl;
+    } catch (error) {
+      console.error('Error uploading photo:', error);
+      toast.error("Failed to upload photo. You can add it later.");
+      return null;
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     // Validate verifications
@@ -133,21 +134,62 @@ export default function InfluencerSignup() {
       return;
     }
 
-    const profileData = {
-      first_name: firstName,
-      last_name: lastName,
-      email: email,
-      phone: phone,
-      follower_count: parseInt(followerCount),
-      platform_links: platformLinks,
-      content_categories: contentCategories,
-      collaboration_types: collaborationTypes,
-      media_kit_url: mediaKitUrl,
-      bio: influencerBio,
-      status: "pending"
-    };
+    // Validate bio length
+    if (!influencerBio || influencerBio.length < 100) {
+      toast.error("Bio must be at least 100 characters");
+      return;
+    }
 
-    signupMutation.mutate(profileData);
+    setIsLoading(true);
+
+    try {
+      // Upload photo if provided
+      let photoUrl = null;
+      if (photoFile) {
+        photoUrl = await uploadPhoto(photoFile);
+      }
+
+      // Generate a temporary password (influencer will need to set their own via email)
+      // For now, we'll require them to set a password
+      const tempPassword = `Temp${Math.random().toString(36).slice(-8)}!`;
+
+      // Register influencer account
+      const result = await registerInfluencer(
+        {
+          email,
+          password: tempPassword, // In production, send password reset email instead
+          firstName,
+          lastName,
+        },
+        {
+          firstName,
+          lastName,
+          phone,
+          totalFollowerCount: followerCount,
+          platformLinks,
+          contentCategories,
+          collaborationTypes,
+          mediaKitUrl,
+          bio: influencerBio,
+          profilePhotoUrl: photoUrl,
+          emailVerified,
+          phoneVerified,
+        }
+      );
+
+      if (result.success) {
+        setSignupComplete(true);
+        toast.success("🎉 Influencer application submitted successfully!");
+        // Note: In production, you'd send a password setup email here
+      } else {
+        toast.error(result.error || "Failed to submit application. Please try again.");
+      }
+    } catch (error) {
+      console.error('Signup error:', error);
+      toast.error("Something went wrong. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (signupComplete) {
@@ -385,11 +427,11 @@ export default function InfluencerSignup() {
           <div className="flex justify-center">
             <Button
               type="submit"
-              disabled={signupMutation.isPending || uploadingPhoto}
+              disabled={isLoading || uploadingPhoto}
               size="lg"
               className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white text-lg px-12 py-6 h-auto shadow-xl"
             >
-              {signupMutation.isPending || uploadingPhoto ? (
+              {isLoading || uploadingPhoto ? (
                 <>
                   <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                   {uploadingPhoto ? "Uploading Photo..." : "Submitting..."}

@@ -1,9 +1,11 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
-import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Heart, Loader2, CheckCircle, User, Mail, Phone, Check, Stethoscope } from "lucide-react";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
+import { createPageUrl } from "@/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/lib/supabase";
 import TherapistSignupForm from "../components/signup/TherapistSignupForm";
 import ProfilePhotoUpload from "../components/signup/ProfilePhotoUpload";
 import SocialMediaPlatformsForm from "../components/signup/SocialMediaPlatformsForm";
@@ -40,6 +42,9 @@ export default function TherapistSignup() {
   const [socialMediaPlatforms, setSocialMediaPlatforms] = useState({});
 
   const [signupComplete, setSignupComplete] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const { registerTherapist } = useAuth();
+  const navigate = useNavigate();
 
   // Verification handlers
   const handleSendEmailVerification = () => {
@@ -74,42 +79,39 @@ export default function TherapistSignup() {
     }
   };
 
-  const signupMutation = useMutation({
-    mutationFn: async (data) => {
-      let photoUrl = null;
-      
-      // Upload photo if provided
-      if (photoFile) {
-        setUploadingPhoto(true);
-        try {
-          const uploadResult = await base44.integrations.Core.UploadFile({ file: photoFile });
-          photoUrl = uploadResult.file_url;
-        } catch (error) {
-          toast.error("Failed to upload photo");
-          throw error;
-        } finally {
-          setUploadingPhoto(false);
-        }
-      }
-      
-      // Create profile with photo URL
-      return base44.entities.TherapistProfile.create({
-        ...data,
-        profile_photo_url: photoUrl
-      });
-    },
-    onSuccess: () => {
-      setSignupComplete(true);
-      toast.success("🎉 Therapist profile submitted successfully!");
-    },
-    onError: (error) => {
-      toast.error("Signup failed", {
-        description: "Please try again or contact support."
-      });
-    }
-  });
+  // Upload photo to Supabase Storage
+  const uploadPhoto = async (file) => {
+    if (!file) return null;
 
-  const handleSubmit = (e) => {
+    try {
+      setUploadingPhoto(true);
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `therapist-profiles/${fileName}`;
+
+      // Upload to Supabase Storage
+      const { data, error } = await supabase.storage
+        .from('therapist-photos')
+        .upload(filePath, file);
+
+      if (error) throw error;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('therapist-photos')
+        .getPublicUrl(filePath);
+
+      return publicUrl;
+    } catch (error) {
+      console.error('Error uploading photo:', error);
+      toast.error("Failed to upload photo. You can add it later.");
+      return null;
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     // Validate verifications
@@ -128,24 +130,59 @@ export default function TherapistSignup() {
       return;
     }
 
-    const profileData = {
-      first_name: firstName,
-      last_name: lastName,
-      email: email,
-      phone: phone,
-      licensed_countries: licensedCountries,
-      licensed_states: licensedStates,
-      therapy_types: therapyTypes,
-      specializations: specializations,
-      certifications: certifications,
-      years_experience: parseInt(yearsExperience),
-      consultation_fee: parseFloat(consultationFee),
-      professional_bio: professionalBio,
-      social_media_platforms: socialMediaPlatforms,
-      status: "pending"
-    };
+    setIsLoading(true);
 
-    signupMutation.mutate(profileData);
+    try {
+      // Upload photo if provided
+      let photoUrl = null;
+      if (photoFile) {
+        photoUrl = await uploadPhoto(photoFile);
+      }
+
+      // Generate a temporary password (therapist will need to set their own via email)
+      // For now, we'll require them to set a password
+      const tempPassword = `Temp${Math.random().toString(36).slice(-8)}!`;
+
+      // Register therapist account
+      const result = await registerTherapist(
+        {
+          email,
+          password: tempPassword, // In production, send password reset email instead
+          firstName,
+          lastName,
+        },
+        {
+          firstName,
+          lastName,
+          phone,
+          licensedCountries,
+          licensedStates,
+          therapyTypes,
+          specializations,
+          certifications,
+          yearsExperience,
+          consultationFee,
+          professionalBio,
+          socialMediaPlatforms,
+          profilePhotoUrl: photoUrl,
+          emailVerified,
+          phoneVerified,
+        }
+      );
+
+      if (result.success) {
+        setSignupComplete(true);
+        toast.success("🎉 Therapist application submitted successfully!");
+        // Note: In production, you'd send a password setup email here
+      } else {
+        toast.error(result.error || "Failed to submit application. Please try again.");
+      }
+    } catch (error) {
+      console.error('Signup error:', error);
+      toast.error("Something went wrong. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (signupComplete) {
@@ -393,11 +430,11 @@ export default function TherapistSignup() {
           <div className="flex justify-center">
             <Button
               type="submit"
-              disabled={signupMutation.isPending || uploadingPhoto}
+              disabled={isLoading || uploadingPhoto}
               size="lg"
               className="bg-gradient-to-r from-teal-500 to-blue-500 hover:from-teal-600 hover:to-blue-600 text-white text-lg px-12 py-6 h-auto shadow-xl"
             >
-              {signupMutation.isPending || uploadingPhoto ? (
+              {isLoading || uploadingPhoto ? (
                 <>
                   <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                   {uploadingPhoto ? "Uploading Photo..." : "Submitting..."}
