@@ -119,11 +119,53 @@ export function AuthProvider({ children }) {
 
       if (data?.user) {
         // Fetch user profile
-        const { data: profile } = await supabase
+        const { data: profile, error: profileError } = await supabase
           .from('users')
           .select('*')
           .eq('id', data.user.id)
           .single();
+
+        // If profile doesn't exist, create it
+        if (profileError && profileError.code === 'PGRST116') {
+          // Profile doesn't exist, create it
+          const { data: newProfile, error: createError } = await supabase
+            .from('users')
+            .insert({
+              id: data.user.id,
+              email: data.user.email,
+              name: data.user.user_metadata?.name || data.user.email?.split('@')[0],
+              user_type: data.user.user_metadata?.user_type || 'regular',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            })
+            .select()
+            .single();
+
+          if (createError) {
+            console.error('Error creating missing profile:', createError);
+            // Still allow login even if profile creation fails
+            const userData = {
+              id: data.user.id,
+              email: data.user.email,
+              name: data.user.user_metadata?.name || data.user.email?.split('@')[0],
+              user_type: data.user.user_metadata?.user_type || 'regular',
+            };
+            setUser(userData);
+            return { success: true, user: userData };
+          }
+
+          const userData = {
+            id: data.user.id,
+            email: data.user.email,
+            ...newProfile,
+            name: newProfile?.name || data.user.user_metadata?.name || data.user.email?.split('@')[0],
+          };
+
+          setUser(userData);
+          return { success: true, user: userData };
+        } else if (profileError) {
+          console.error('Error fetching user profile:', profileError);
+        }
 
         const userData = {
           id: data.user.id,
