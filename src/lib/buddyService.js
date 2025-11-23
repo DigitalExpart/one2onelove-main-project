@@ -275,29 +275,66 @@ export const rejectBuddyRequest = async (requestId, userId) => {
  */
 export const getMyBuddies = async (userId) => {
   try {
+    console.log('👥 Fetching buddies for user:', userId);
+    
+    // Fetch buddy requests without joins
     const { data, error } = await supabase
       .from('buddy_requests')
-      .select(`
-        *,
-        from_user:users!from_user_id(id, name, email, avatar_url, bio, relationship_status),
-        to_user:users!to_user_id(id, name, email, avatar_url, bio, relationship_status)
-      `)
+      .select('*')
       .eq('status', 'accepted')
       .or(`from_user_id.eq.${userId},to_user_id.eq.${userId}`);
 
     if (error) throw error;
 
+    console.log('✅ Found buddy requests:', data);
+
+    // Get unique user IDs
+    const userIds = new Set();
+    data?.forEach(request => {
+      userIds.add(request.from_user_id);
+      userIds.add(request.to_user_id);
+    });
+
+    // Fetch all user data in one query
+    const { data: users, error: usersError } = await supabase
+      .from('users')
+      .select('id, name, email, avatar_url, bio, relationship_status, location')
+      .in('id', Array.from(userIds));
+
+    if (usersError) {
+      console.error('Error fetching users:', usersError);
+    }
+
+    console.log('✅ Fetched user data:', users);
+
+    // Create a map of users by ID
+    const usersMap = {};
+    users?.forEach(u => {
+      usersMap[u.id] = u;
+    });
+
     // Transform data to return the other user's info
     const buddies = (data || []).map(request => {
       const isFromUser = request.from_user_id === userId;
-      const buddy = isFromUser ? request.to_user : request.from_user;
+      const otherUserId = isFromUser ? request.to_user_id : request.from_user_id;
+      const buddy = usersMap[otherUserId] || { id: otherUserId, email: 'Unknown' };
+      
+      console.log('🎴 Processing buddy:', { 
+        requestId: request.id, 
+        isFromUser, 
+        otherUserId, 
+        buddyName: buddy.name 
+      });
+      
       return {
         ...buddy,
         request_id: request.id,
         connected_since: request.updated_at || request.created_at,
+        status: 'active',
       };
     });
 
+    console.log('✅ Transformed buddies:', buddies);
     return buddies;
   } catch (error) {
     console.error('Error fetching buddies:', error);
