@@ -22,11 +22,7 @@ export const getMyConversations = async () => {
     // Get conversations where user is either user1 or user2
     const { data: conversations, error } = await supabase
       .from('conversations')
-      .select(`
-        *,
-        user1:user1_id(id, name, email, avatar_url),
-        user2:user2_id(id, name, email, avatar_url)
-      `)
+      .select('*')
       .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`)
       .order('last_message_time', { ascending: false, nullsFirst: false });
 
@@ -37,10 +33,36 @@ export const getMyConversations = async () => {
 
     console.log(`✅ Found ${conversations?.length || 0} conversations`);
 
+    // Get unique user IDs from conversations
+    const userIds = new Set();
+    conversations?.forEach(conv => {
+      userIds.add(conv.user1_id);
+      userIds.add(conv.user2_id);
+    });
+
+    // Fetch all users in one query from public.users table
+    const { data: users, error: usersError } = await supabase
+      .from('users')
+      .select('id, name, email, avatar_url')
+      .in('id', Array.from(userIds));
+
+    if (usersError) {
+      console.error('Error fetching users:', usersError);
+    }
+
+    // Create a map of users by ID for quick lookup
+    const usersMap = {};
+    users?.forEach(u => {
+      usersMap[u.id] = u;
+    });
+
+    console.log('👥 Fetched user data for conversations:', usersMap);
+
     // Transform conversations to include the "other" user's details
     const transformedConversations = conversations?.map(conv => {
       const isUser1 = conv.user1_id === user.id;
-      const otherUser = isUser1 ? conv.user2 : conv.user1;
+      const otherUserId = isUser1 ? conv.user2_id : conv.user1_id;
+      const otherUser = usersMap[otherUserId] || { id: otherUserId, email: 'Unknown' };
       
       return {
         id: conv.id,
@@ -108,11 +130,7 @@ export const getMessages = async (conversationId) => {
 
     const { data: messages, error } = await supabase
       .from('messages')
-      .select(`
-        *,
-        sender:sender_id(id, name, email, avatar_url),
-        receiver:receiver_id(id, name, email, avatar_url)
-      `)
+      .select('*')
       .eq('conversation_id', conversationId)
       .eq('is_deleted', false)
       .order('created_at', { ascending: true });
@@ -124,36 +142,65 @@ export const getMessages = async (conversationId) => {
 
     console.log(`✅ Found ${messages?.length || 0} messages`);
 
+    // Get unique user IDs from messages
+    const userIds = new Set();
+    messages?.forEach(msg => {
+      userIds.add(msg.sender_id);
+      userIds.add(msg.receiver_id);
+    });
+
+    // Fetch all users in one query
+    let usersMap = {};
+    if (userIds.size > 0) {
+      const { data: users, error: usersError } = await supabase
+        .from('users')
+        .select('id, name, email, avatar_url')
+        .in('id', Array.from(userIds));
+
+      if (usersError) {
+        console.error('Error fetching users for messages:', usersError);
+      }
+
+      // Create a map of users by ID
+      users?.forEach(u => {
+        usersMap[u.id] = u;
+      });
+    }
+
     const { data: { user } } = await supabase.auth.getUser();
 
     // Transform messages to match expected format
-    const transformedMessages = messages?.map(msg => ({
-      id: msg.id,
-      conversationId: msg.conversation_id,
-      senderId: msg.sender_id,
-      receiverId: msg.receiver_id,
-      senderName: msg.sender?.name || msg.sender?.email || 'Unknown',
-      senderAvatar: msg.sender?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${msg.sender?.email}`,
-      type: msg.message_type,
-      text: msg.content,
-      content: msg.content,
-      fileUrl: msg.file_url,
-      fileName: msg.file_name,
-      fileSize: msg.file_size,
-      fileType: msg.file_type,
-      locationLat: msg.location_lat,
-      locationLng: msg.location_lng,
-      locationAddress: msg.location_address,
-      isRead: msg.is_read,
-      isEdited: msg.is_edited,
-      replyToId: msg.reply_to_id,
-      timestamp: msg.created_at,
-      createdAt: msg.created_at,
-      updatedAt: msg.updated_at,
-      // Determine if this is from current user or other user
-      isOwn: msg.sender_id === user?.id,
-      status: msg.is_read ? 'read' : 'delivered',
-    })) || [];
+    const transformedMessages = messages?.map(msg => {
+      const sender = usersMap[msg.sender_id] || { id: msg.sender_id, email: 'Unknown' };
+      
+      return {
+        id: msg.id,
+        conversationId: msg.conversation_id,
+        senderId: msg.sender_id,
+        receiverId: msg.receiver_id,
+        senderName: sender.name || sender.email || 'Unknown',
+        senderAvatar: sender.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${sender.email}`,
+        type: msg.message_type,
+        text: msg.content,
+        content: msg.content,
+        fileUrl: msg.file_url,
+        fileName: msg.file_name,
+        fileSize: msg.file_size,
+        fileType: msg.file_type,
+        locationLat: msg.location_lat,
+        locationLng: msg.location_lng,
+        locationAddress: msg.location_address,
+        isRead: msg.is_read,
+        isEdited: msg.is_edited,
+        replyToId: msg.reply_to_id,
+        timestamp: msg.created_at,
+        createdAt: msg.created_at,
+        updatedAt: msg.updated_at,
+        // Determine if this is from current user or other user
+        isOwn: msg.sender_id === user?.id,
+        status: msg.is_read ? 'read' : 'delivered',
+      };
+    }) || [];
 
     return transformedMessages;
   } catch (error) {
@@ -184,11 +231,7 @@ export const sendMessage = async (conversationId, receiverId, content, messageTy
         content: content,
         message_type: messageType,
       })
-      .select(`
-        *,
-        sender:sender_id(id, name, email, avatar_url),
-        receiver:receiver_id(id, name, email, avatar_url)
-      `)
+      .select()
       .single();
 
     if (error) {
@@ -250,11 +293,7 @@ export const sendFileMessage = async (conversationId, receiverId, file, messageT
         file_size: file.size,
         file_type: file.type,
       })
-      .select(`
-        *,
-        sender:sender_id(id, name, email, avatar_url),
-        receiver:receiver_id(id, name, email, avatar_url)
-      `)
+      .select()
       .single();
 
     if (error) {
@@ -295,11 +334,7 @@ export const sendLocationMessage = async (conversationId, receiverId, location) 
         location_lng: location.lng,
         location_address: location.address,
       })
-      .select(`
-        *,
-        sender:sender_id(id, name, email, avatar_url),
-        receiver:receiver_id(id, name, email, avatar_url)
-      `)
+      .select()
       .single();
 
     if (error) {
