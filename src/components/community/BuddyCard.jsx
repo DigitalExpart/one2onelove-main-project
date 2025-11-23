@@ -15,6 +15,9 @@ export default function BuddyCard({ buddy, onAccept, onDecline, showActions = fa
   const buddyLocation = buddy.location;
   const buddyBio = buddy.bio;
   const buddyRelationshipStatus = buddy.relationship_status;
+  const buddyUserId = buddy.id; // This is the buddy's user ID from users table
+  
+  console.log('🎴 BuddyCard - Buddy data:', { name: buddyName, userId: buddyUserId, fullBuddy: buddy });
   
   return (
     <Card className="hover:shadow-xl transition-all duration-300 border-2 border-purple-100">
@@ -120,7 +123,7 @@ export default function BuddyCard({ buddy, onAccept, onDecline, showActions = fa
             </Button>
           </div>
         ) : (
-          <Link to={`${createPageUrl("Chat")}?userId=${buddy.user_id || buddy.id}`}>
+          <Link to={`${createPageUrl("Chat")}?userId=${buddyUserId}`}>
             <Button className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 mt-2">
               <MessageCircle className="w-4 h-4 mr-2" />
               Message {buddyName.split(' ')[0]}
