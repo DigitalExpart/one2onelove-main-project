@@ -48,20 +48,28 @@ export default function FindFriends() {
   // Fetch users and sent requests on mount
   useEffect(() => {
     const fetchData = async () => {
+      console.log('🚀 FindFriends useEffect triggered');
+      console.log('👤 Current user:', user);
+      console.log('🆔 User ID:', user?.id);
+      
       if (!user?.id) {
+        console.log('⚠️ No user ID found - user not signed in?');
         setLoading(false);
+        toast.error('Please sign in to see users');
         return;
       }
       
       setLoading(true);
       try {
-        console.log('Fetching users for user:', user.id);
+        console.log('🔍 Fetching users for user:', user.id);
         // Fetch all users (increased limit to 100)
         const usersData = await getAllUsers(user.id, { limit: 100 });
-        console.log('Fetched users:', usersData.length);
+        console.log('✅ Fetched users:', usersData.length);
+        console.log('👥 Users data:', usersData);
         
         // Fetch sent requests to know which users we've already sent requests to
         const sentRequestsData = await getSentBuddyRequests(user.id);
+        console.log('📤 Sent requests:', sentRequestsData.length);
         const requestsMap = new Map(
           sentRequestsData.map(req => [req.to_user_id, req.id])
         );
@@ -69,8 +77,13 @@ export default function FindFriends() {
         setUsers(usersData);
         setFilteredUsers(usersData);
         setSentRequests(requestsMap);
+        
+        if (usersData.length === 0) {
+          console.log('⚠️ Query returned 0 users - RLS policy issue?');
+        }
       } catch (error) {
-        console.error('Error fetching users:', error);
+        console.error('❌ Error fetching users:', error);
+        console.error('❌ Error details:', error.message, error.code, error);
         toast.error(error.message || 'Failed to load users');
       } finally {
         setLoading(false);
