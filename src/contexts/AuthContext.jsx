@@ -110,23 +110,29 @@ export function AuthProvider({ children }) {
 
   // Check for existing session on mount
   useEffect(() => {
+    console.log('🚀 AuthContext: Initializing...');
+    
     const checkAuth = async () => {
       try {
+        console.log('🔍 Checking for existing session...');
         // Get current session from Supabase
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
-          console.error('Error getting session:', error);
+          console.error('❌ Error getting session:', error);
           setIsLoading(false);
           return;
         }
 
         if (session?.user) {
+          console.log('✅ Session found for:', session.user.email);
           const userData = await ensureUserProfile(session.user);
           setUser(userData);
+        } else {
+          console.log('⚠️ No active session found');
         }
       } catch (error) {
-        console.error('Error checking auth:', error);
+        console.error('💥 Error checking auth:', error);
       } finally {
         setIsLoading(false);
       }
@@ -136,15 +142,32 @@ export function AuthProvider({ children }) {
 
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('🔔 Auth state changed:', event, session?.user?.email);
+      
       if (event === 'SIGNED_IN' && session?.user) {
+        console.log('✅ User signed in:', session.user.email);
         const userData = await ensureUserProfile(session.user);
         setUser(userData);
       } else if (event === 'SIGNED_OUT') {
+        console.log('👋 User signed out');
         setUser(null);
+      } else if (event === 'TOKEN_REFRESHED') {
+        console.log('🔄 Token refreshed for:', session?.user?.email);
+        if (session?.user) {
+          const userData = await ensureUserProfile(session.user);
+          setUser(userData);
+        }
+      } else if (event === 'USER_UPDATED') {
+        console.log('📝 User updated:', session?.user?.email);
+        if (session?.user) {
+          const userData = await ensureUserProfile(session.user);
+          setUser(userData);
+        }
       }
     });
 
     return () => {
+      console.log('🧹 Cleaning up auth listener');
       subscription.unsubscribe();
     };
   }, []);

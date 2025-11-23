@@ -25,10 +25,26 @@ export const supabase = createClient(
     auth: {
       autoRefreshToken: true,
       persistSession: true,
-      detectSessionInUrl: true
+      detectSessionInUrl: true,
+      storage: window.localStorage,
+      storageKey: 'one2one-love-auth',
+      flowType: 'pkce'
     }
   }
 );
+
+// Log session status for debugging
+if (isSupabaseConfigured()) {
+  supabase.auth.getSession().then(({ data, error }) => {
+    if (error) {
+      console.error('🔐 Session check error:', error);
+    } else if (data.session) {
+      console.log('✅ Active session found:', data.session.user.email);
+    } else {
+      console.log('⚠️ No active session');
+    }
+  });
+}
 
 // Helper function to handle Supabase errors
 export const handleSupabaseError = (error) => {
