@@ -13,7 +13,7 @@ import { supabase, handleSupabaseError } from './supabase';
  */
 export const getAllUsers = async (currentUserId, options = {}) => {
   try {
-    console.log('getAllUsers called with userId:', currentUserId);
+    console.log('🔍 getAllUsers called with userId:', currentUserId);
     
     // Select all user fields including optional location
     let query = supabase
@@ -21,12 +21,13 @@ export const getAllUsers = async (currentUserId, options = {}) => {
       .select('*')
       .neq('id', currentUserId); // Exclude current user
 
-    // Filter by user type (only show regular users by default)
+    // REMOVED STRICT user_type FILTER - show all users regardless of type
+    // This ensures users show up even if user_type is NULL or not set
     if (options.userType) {
+      console.log('Filtering by user_type:', options.userType);
       query = query.eq('user_type', options.userType);
-    } else {
-      query = query.eq('user_type', 'regular');
     }
+    // Note: If no userType specified, we show ALL users (no filter)
 
     // NO search filter applied in the query - we'll filter in the frontend
     // This is because OR with NULL values can cause issues
@@ -40,18 +41,19 @@ export const getAllUsers = async (currentUserId, options = {}) => {
     const limit = options.limit || 100;
     query = query.limit(limit);
 
-    console.log('Executing query...');
+    console.log('📡 Executing Supabase query...');
     const { data, error } = await query;
 
     if (error) {
-      console.error('Supabase query error:', error);
+      console.error('❌ Supabase query error:', error);
       throw error;
     }
     
-    console.log('Query successful, returned users:', data?.length || 0);
+    console.log('✅ Query successful! Returned users:', data?.length || 0);
+    console.log('👥 Users data:', data);
     return data || [];
   } catch (error) {
-    console.error('Error fetching users:', error);
+    console.error('💥 Error fetching users:', error);
     throw new Error(handleSupabaseError(error));
   }
 };
