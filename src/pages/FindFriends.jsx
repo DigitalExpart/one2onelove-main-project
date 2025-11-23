@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, UserPlus, ArrowLeft, Users, MapPin, Heart, MessageCircle, X } from 'lucide-react';
+import { Search, UserPlus, ArrowLeft, Users, MapPin, Heart, MessageCircle, X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,6 +9,8 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { createPageUrl } from '@/utils';
 import { useLanguage } from '@/Layout';
+import { useAuth } from '@/contexts/AuthContext';
+import { getAllUsers, sendBuddyRequest, getSentBuddyRequests } from '@/lib/buddyService';
 
 const translations = {
   en: {
@@ -29,98 +31,101 @@ const translations = {
   },
 };
 
-// Mock data - Replace with actual API calls
-const mockUsers = [
-  {
-    id: '1',
-    name: 'Sarah Johnson',
-    email: 'sarah.johnson@example.com',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah',
-    location: 'New York, USA',
-    relationshipStatus: 'Dating',
-    about: 'Love traveling, photography, and spending time with friends.',
-    sharedInterests: ['Photography', 'Travel', 'Cooking'],
-    isOnline: true,
-  },
-  {
-    id: '2',
-    name: 'Mike Chen',
-    email: 'mike.chen@example.com',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mike',
-    location: 'San Francisco, USA',
-    relationshipStatus: 'Single',
-    about: 'Software developer, coffee enthusiast, and weekend hiker.',
-    sharedInterests: ['Technology', 'Hiking', 'Coffee'],
-    isOnline: false,
-  },
-  {
-    id: '3',
-    name: 'Emma Wilson',
-    email: 'emma.wilson@example.com',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Emma',
-    location: 'London, UK',
-    relationshipStatus: 'Married',
-    about: 'Yoga instructor and wellness coach. Always learning and growing.',
-    sharedInterests: ['Yoga', 'Wellness', 'Meditation'],
-    isOnline: true,
-  },
-  {
-    id: '4',
-    name: 'David Martinez',
-    email: 'david.martinez@example.com',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=David',
-    location: 'Los Angeles, USA',
-    relationshipStatus: 'Engaged',
-    about: 'Musician and music producer. Love creating and sharing music.',
-    sharedInterests: ['Music', 'Art', 'Concerts'],
-    isOnline: false,
-  },
-];
+// No more mock data - using real users from Supabase!
 
 export default function FindFriends() {
   const navigate = useNavigate();
   const { currentLanguage } = useLanguage();
+  const { user } = useAuth();
   const t = translations[currentLanguage] || translations.en;
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [sentRequests, setSentRequests] = useState(new Set());
-  const [filteredUsers, setFilteredUsers] = useState(mockUsers);
+  const [users, setUsers] = useState([]);
+  const [filteredUsers, setFilteredUsers] = useState([]);
+  const [sentRequests, setSentRequests] = useState(new Map()); // Map of userId -> requestId
+  const [loading, setLoading] = useState(true);
+
+  // Fetch users and sent requests on mount
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!user?.id) return;
+      
+      setLoading(true);
+      try {
+        // Fetch all users
+        const usersData = await getAllUsers(user.id, { limit: 50 });
+        
+        // Fetch sent requests to know which users we've already sent requests to
+        const sentRequestsData = await getSentBuddyRequests(user.id);
+        const requestsMap = new Map(
+          sentRequestsData.map(req => [req.to_user_id, req.id])
+        );
+        
+        setUsers(usersData);
+        setFilteredUsers(usersData);
+        setSentRequests(requestsMap);
+      } catch (error) {
+        console.error('Error fetching users:', error);
+        toast.error('Failed to load users');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [user?.id]);
 
   const handleSearch = (query) => {
     setSearchQuery(query);
     if (!query.trim()) {
-      setFilteredUsers(mockUsers);
+      setFilteredUsers(users);
       return;
     }
 
     const lowerQuery = query.toLowerCase();
-    const filtered = mockUsers.filter(
-      (user) =>
-        user.name.toLowerCase().includes(lowerQuery) ||
-        user.email.toLowerCase().includes(lowerQuery) ||
-        user.location.toLowerCase().includes(lowerQuery) ||
-        user.sharedInterests.some((interest) =>
-          interest.toLowerCase().includes(lowerQuery)
-        )
+    const filtered = users.filter(
+      (u) =>
+        u.name?.toLowerCase().includes(lowerQuery) ||
+        u.email?.toLowerCase().includes(lowerQuery) ||
+        u.bio?.toLowerCase().includes(lowerQuery) ||
+        u.relationship_status?.toLowerCase().includes(lowerQuery)
     );
     setFilteredUsers(filtered);
   };
 
-  const handleSendRequest = (userId) => {
-    setSentRequests((prev) => new Set([...prev, userId]));
-    toast.success(t.requestSentSuccess);
-    // TODO: Send friend request to backend
-    // await base44.entities.FriendRequest.create({ to_user_id: userId });
+  const handleSendRequest = async (toUserId) => {
+    if (!user?.id) {
+      toast.error('Please sign in to send buddy requests');
+      return;
+    }
+
+    try {
+      const request = await sendBuddyRequest(user.id, toUserId);
+      setSentRequests((prev) => new Map([...prev, [toUserId, request.id]]));
+      toast.success(t.requestSentSuccess);
+    } catch (error) {
+      console.error('Error sending request:', error);
+      toast.error(error.message || 'Failed to send buddy request');
+    }
   };
 
-  const handleCancelRequest = (userId) => {
-    setSentRequests((prev) => {
-      const newSet = new Set(prev);
-      newSet.delete(userId);
-      return newSet;
-    });
-    toast.success(t.requestCancelled);
-    // TODO: Cancel friend request in backend
+  const handleCancelRequest = async (toUserId) => {
+    const requestId = sentRequests.get(toUserId);
+    if (!requestId) return;
+
+    try {
+      // Note: We'll need to implement cancelBuddyRequest in buddyService
+      // For now, just remove from UI
+      setSentRequests((prev) => {
+        const newMap = new Map(prev);
+        newMap.delete(toUserId);
+        return newMap;
+      });
+      toast.success(t.requestCancelled);
+    } catch (error) {
+      console.error('Error cancelling request:', error);
+      toast.error('Failed to cancel request');
+    }
   };
 
   return (
@@ -160,7 +165,14 @@ export default function FindFriends() {
         </div>
 
         {/* Results */}
-        {filteredUsers.length === 0 ? (
+        {loading ? (
+          <Card className="text-center py-12">
+            <CardContent>
+              <Loader2 className="w-16 h-16 text-purple-500 mx-auto mb-4 animate-spin" />
+              <p className="text-gray-600 text-lg">Loading users...</p>
+            </CardContent>
+          </Card>
+        ) : filteredUsers.length === 0 ? (
           <Card className="text-center py-12">
             <CardContent>
               <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
@@ -169,75 +181,58 @@ export default function FindFriends() {
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredUsers.map((user) => {
-              const hasSentRequest = sentRequests.has(user.id);
+            {filteredUsers.map((userData) => {
+              const hasSentRequest = sentRequests.has(userData.id);
+              // Generate avatar if user doesn't have one
+              const avatarUrl = userData.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userData.name}`;
+              const initials = userData.name?.charAt(0).toUpperCase() || '?';
 
               return (
-                <Card key={user.id} className="hover:shadow-xl transition-shadow">
+                <Card key={userData.id} className="hover:shadow-xl transition-shadow">
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">
                         <div className="relative">
                           <Avatar className="w-16 h-16">
-                            <AvatarImage src={user.avatar} alt={user.name} />
-                            <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                            <AvatarImage src={avatarUrl} alt={userData.name} />
+                            <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white">
+                              {initials}
+                            </AvatarFallback>
                           </Avatar>
-                          {user.isOnline && (
-                            <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></div>
-                          )}
                         </div>
                         <div>
-                          <CardTitle className="text-lg">{user.name}</CardTitle>
-                          <p className="text-sm text-gray-500">{user.email}</p>
+                          <CardTitle className="text-lg">{userData.name}</CardTitle>
+                          <p className="text-sm text-gray-500">{userData.email}</p>
                         </div>
                       </div>
                     </div>
                   </CardHeader>
                   <CardContent>
-                    {user.about && (
+                    {userData.bio && (
                       <p className="text-sm text-gray-600 mb-4 line-clamp-2">
-                        {user.about}
+                        {userData.bio}
                       </p>
                     )}
 
                     <div className="space-y-2 mb-4">
-                      {user.location && (
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <MapPin className="w-4 h-4" />
-                          <span>{user.location}</span>
-                        </div>
-                      )}
-                      {user.relationshipStatus && (
+                      {userData.relationship_status && (
                         <div className="flex items-center gap-2 text-sm text-gray-600">
                           <Heart className="w-4 h-4" />
-                          <span>{user.relationshipStatus}</span>
+                          <span className="capitalize">{userData.relationship_status}</span>
                         </div>
                       )}
+                      <div className="flex items-center gap-2 text-sm text-gray-500">
+                        <Users className="w-4 h-4" />
+                        <span>Member since {new Date(userData.created_at).toLocaleDateString()}</span>
+                      </div>
                     </div>
 
-                    {user.sharedInterests && user.sharedInterests.length > 0 && (
-                      <div className="mb-4">
-                        <p className="text-xs text-gray-500 mb-2">{t.sharedInterests}</p>
-                        <div className="flex flex-wrap gap-1">
-                          {user.sharedInterests.slice(0, 3).map((interest, idx) => (
-                            <Badge
-                              key={idx}
-                              variant="secondary"
-                              className="text-xs bg-purple-100 text-purple-700"
-                            >
-                              {interest}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 mt-4">
                       {hasSentRequest ? (
                         <Button
                           variant="outline"
                           className="flex-1"
-                          onClick={() => handleCancelRequest(user.id)}
+                          onClick={() => handleCancelRequest(userData.id)}
                         >
                           <X className="w-4 h-4 mr-2" />
                           {t.cancelRequest}
@@ -245,7 +240,7 @@ export default function FindFriends() {
                       ) : (
                         <Button
                           className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
-                          onClick={() => handleSendRequest(user.id)}
+                          onClick={() => handleSendRequest(userData.id)}
                         >
                           <UserPlus className="w-4 h-4 mr-2" />
                           {t.sendRequest}
@@ -255,8 +250,9 @@ export default function FindFriends() {
                         variant="outline"
                         onClick={() => {
                           // Navigate to chat page with this user
-                          navigate(`${createPageUrl('Chat')}?user=${user.id}&name=${encodeURIComponent(user.name)}`);
+                          navigate(`${createPageUrl('Chat')}?user=${userData.id}&name=${encodeURIComponent(userData.name)}`);
                         }}
+                        title="Send Message"
                       >
                         <MessageCircle className="w-4 h-4" />
                       </Button>
