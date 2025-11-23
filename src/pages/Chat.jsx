@@ -66,36 +66,50 @@ export default function Chat() {
       console.log('📱 Opening chat with userId:', userId);
       handleOpenChatWithUser(userId);
     }
-  }, [searchParams, user, conversations]);
+  }, [searchParams, user]);
 
   const handleOpenChatWithUser = async (otherUserId) => {
     try {
+      console.log('🔄 Getting or creating conversation for user:', otherUserId);
+      
       // Get or create conversation
       const conversationId = await getOrCreateConversation(otherUserId);
       console.log('✅ Got conversation ID:', conversationId);
       
-      // Refetch conversations to get the new/existing one
-      await queryClient.invalidateQueries(['conversations']);
+      // Refetch conversations to get the latest data
+      const { data: updatedConversations } = await queryClient.fetchQuery({
+        queryKey: ['conversations'],
+        queryFn: getMyConversations
+      });
       
-      // Find and select the conversation
-      setTimeout(() => {
-        const conv = conversations.find(c => c.id === conversationId);
-        if (conv) {
-          setSelectedChatId(conversationId);
-          setSelectedChat(conv);
-          markMessagesAsRead(conversationId);
-        } else {
-          // If not found in current list, set the ID anyway
-          setSelectedChatId(conversationId);
-        }
-      }, 500);
+      console.log('📬 Updated conversations:', updatedConversations);
+      
+      // Find the conversation we just created/got
+      const conv = updatedConversations?.find(c => c.id === conversationId);
+      
+      if (conv) {
+        console.log('✅ Found conversation, selecting:', conv);
+        setSelectedChatId(conversationId);
+        setSelectedChat(conv);
+        markMessagesAsRead(conversationId);
+      } else {
+        console.warn('⚠️ Conversation not found in list, setting ID anyway');
+        setSelectedChatId(conversationId);
+        // Set a minimal chat object
+        setSelectedChat({
+          id: conversationId,
+          otherUserId: otherUserId,
+          name: 'Loading...',
+          avatar: '',
+        });
+      }
 
       // Clean up URL parameters
       const newUrl = window.location.pathname;
       window.history.replaceState({}, '', newUrl);
     } catch (error) {
-      console.error('Error opening chat:', error);
-      toast.error('Failed to open chat');
+      console.error('❌ Error opening chat:', error);
+      toast.error('Failed to open chat: ' + error.message);
     }
   };
 
