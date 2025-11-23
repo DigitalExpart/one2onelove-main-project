@@ -321,13 +321,15 @@ function LanguageContent({ children, currentPageName }) {
                 {t.nav.lgbtq}
               </Link>
               
-              <Link
-                to={createPageUrl("Profile")}
-                className="flex items-center gap-1 text-white/80 hover:text-white hover:bg-white/10 px-3 py-2 rounded-lg transition-all font-medium text-sm"
-              >
-                <User className="w-4 h-4" />
-                {t.nav.profile}
-              </Link>
+              {isAuthenticated && (
+                <Link
+                  to={createPageUrl("Profile")}
+                  className="flex items-center gap-1 text-white/80 hover:text-white hover:bg-white/10 px-3 py-2 rounded-lg transition-all font-medium text-sm"
+                >
+                  <User className="w-4 h-4" />
+                  {t.nav.profile}
+                </Link>
+              )}
 
               <Link
                 to={createPageUrl("Developer")}
@@ -632,14 +634,16 @@ function LanguageContent({ children, currentPageName }) {
                   <Rainbow className="w-5 h-5" />
                   {t.nav.lgbtq}
                 </Link>
-                <Link
-                  to={createPageUrl("Profile")}
-                  className="flex items-center gap-2 text-white hover:bg-white/10 px-4 py-3 rounded-lg transition-all"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <User className="w-5 h-5" />
-                  {t.nav.profile}
-                </Link>
+                {isAuthenticated && (
+                  <Link
+                    to={createPageUrl("Profile")}
+                    className="flex items-center gap-2 text-white hover:bg-white/10 px-4 py-3 rounded-lg transition-all"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <User className="w-5 h-5" />
+                    {t.nav.profile}
+                  </Link>
+                )}
                 <Link
                   to={createPageUrl("Developer")}
                   className="flex items-center gap-2 text-yellow-300 hover:bg-white/10 px-4 py-3 rounded-lg transition-all"
