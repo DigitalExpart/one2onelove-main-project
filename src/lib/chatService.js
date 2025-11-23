@@ -184,7 +184,7 @@ export const getMessages = async (conversationId) => {
     const transformedMessages = messages?.map(msg => {
       const sender = usersMap[msg.sender_id] || { id: msg.sender_id, email: 'Unknown' };
       
-      return {
+      const baseMessage = {
         id: msg.id,
         conversationId: msg.conversation_id,
         senderId: msg.sender_id,
@@ -211,6 +211,21 @@ export const getMessages = async (conversationId) => {
         isOwn: msg.sender_id === user?.id,
         status: msg.is_read ? 'read' : 'delivered',
       };
+      
+      // Add type-specific fields for ChatMessage component compatibility
+      if (msg.message_type === 'image') {
+        baseMessage.imageUrl = msg.file_url;
+        baseMessage.caption = msg.content;
+      } else if (msg.message_type === 'voice' || msg.message_type === 'audio') {
+        baseMessage.audioUrl = msg.file_url;
+        baseMessage.duration = msg.duration || 0;
+      } else if (msg.message_type === 'location') {
+        baseMessage.latitude = msg.location_lat;
+        baseMessage.longitude = msg.location_lng;
+        baseMessage.address = msg.location_address;
+      }
+      
+      return baseMessage;
     }) || [];
 
     return transformedMessages;
