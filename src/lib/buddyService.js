@@ -178,7 +178,10 @@ export const getSentBuddyRequests = async (userId) => {
   try {
     const { data, error } = await supabase
       .from('buddy_requests')
-      .select('*')
+      .select(`
+        *,
+        to_user:users!to_user_id(id, name, email, avatar_url, bio)
+      `)
       .eq('from_user_id', userId)
       .eq('status', 'pending');
 

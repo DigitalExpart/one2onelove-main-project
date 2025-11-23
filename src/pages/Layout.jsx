@@ -2,7 +2,7 @@
 import React, { useState, createContext, useContext, useRef, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Heart, Home, ChevronDown, User, LogIn, LogOut, Users, UserPlus, Menu, X, Sparkles, Target, Code, Rainbow, UserCheck, Gift, MessageCircle } from "lucide-react";
+import { Heart, Home, ChevronDown, User, LogIn, LogOut, Users, UserPlus, Menu, X, Sparkles, Target, Code, Rainbow, UserCheck, Gift, MessageCircle, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -342,6 +342,21 @@ function LanguageContent({ children, currentPageName }) {
 
             {/* Right side buttons */}
             <div className="flex items-center gap-2">
+              {/* Friend Requests Icon - Only show when authenticated */}
+              {isAuthenticated && (
+                <Link to={createPageUrl("FriendRequests")} className="hidden md:block">
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    className="text-white/80 hover:text-white hover:bg-white/10 whitespace-nowrap relative" 
+                    title="Friend Requests"
+                  >
+                    <Bell className="w-5 h-5" />
+                    <span className="hidden xl:inline ml-2">Requests</span>
+                  </Button>
+                </Link>
+              )}
+
               {/* Chat Icon - Only show when authenticated */}
               {isAuthenticated && (
                 <Link to={createPageUrl("Chat")} className="hidden md:block">
