@@ -202,9 +202,18 @@ export function AuthProvider({ children }) {
 
   const register = async (userData) => {
     try {
+      console.log('AuthContext.register: Starting registration...', { email: userData.email, name: userData.name });
       const { email, password, name, relationshipStatus, anniversaryDate, partnerEmail } = userData;
 
+      // Check if Supabase is configured
+      if (!isSupabaseConfigured()) {
+        const errorMsg = 'Application is not properly configured. Please contact support or configure Supabase credentials.';
+        console.error('❌ Supabase not configured');
+        return { success: false, error: errorMsg };
+      }
+
       // Sign up with Supabase Auth
+      console.log('Calling supabase.auth.signUp...');
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
@@ -218,11 +227,15 @@ export function AuthProvider({ children }) {
         },
       });
 
+      console.log('SignUp auth response:', { authData, authError });
+
       if (authError) {
+        console.error('Auth error:', authError);
         return { success: false, error: handleSupabaseError(authError) };
       }
 
       if (authData?.user) {
+        console.log('User created in auth, creating profile in database...');
         // Create user profile in database
         // user_type defaults to 'regular' for regular user signups
         const { data: profile, error: profileError } = await supabase
@@ -240,6 +253,8 @@ export function AuthProvider({ children }) {
           })
           .select()
           .single();
+
+        console.log('Profile creation response:', { profile, profileError });
 
         if (profileError) {
           console.error('Error creating user profile:', profileError);
@@ -261,13 +276,15 @@ export function AuthProvider({ children }) {
           ...profile,
         };
 
+        console.log('Setting user state and returning success');
         setUser(newUser);
         return { success: true, user: newUser };
       }
 
+      console.error('No user data in authData');
       return { success: false, error: 'Registration failed' };
     } catch (error) {
-      console.error('Registration error:', error);
+      console.error('Registration error (caught):', error);
       return { success: false, error: handleSupabaseError(error) };
     }
   };

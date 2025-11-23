@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { useLanguage } from "@/Layout";
 import { useAuth } from "@/contexts/AuthContext";
+import EmailVerificationDialog from "./EmailVerificationDialog";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 
@@ -179,9 +180,20 @@ export default function RegularUserForm({ onBack }) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    console.log('🔥 SignUp Form - Submission started');
+    console.log('Form data:', { 
+      name: formData.fullName, 
+      email: formData.email, 
+      hasPassword: !!formData.password,
+      relationshipStatus: formData.relationshipStatus,
+      agreeToTerms: formData.agreeToTerms 
+    });
     
     if (formData.password !== formData.confirmPassword) {
       toast.error("Passwords don't match!");
@@ -196,6 +208,7 @@ export default function RegularUserForm({ onBack }) {
     setIsLoading(true);
     
     try {
+      console.log('Calling register function...');
       const result = await register({
         name: formData.fullName,
         email: formData.email,
@@ -205,13 +218,21 @@ export default function RegularUserForm({ onBack }) {
         partnerEmail: formData.partnerEmail,
       });
 
+      console.log('Register result:', result);
+
       if (result.success) {
-        toast.success("Account created successfully! Redirecting to dashboard...");
-        navigate(createPageUrl("Dashboard"));
+        // Store the email and show dialog
+        setRegisteredEmail(formData.email);
+        setShowEmailDialog(true);
+        
+        // Also show a toast for good measure
+        toast.success("Account created successfully! Please check your email.");
       } else {
+        console.error('Registration failed:', result.error);
         toast.error(result.error || "Something went wrong. Please try again.");
       }
     } catch (err) {
+      console.error('Registration error caught:', err);
       toast.error("Something went wrong. Please try again.");
     } finally {
       setIsLoading(false);
@@ -219,6 +240,7 @@ export default function RegularUserForm({ onBack }) {
   };
 
   return (
+    <>
     <Card className="max-w-2xl mx-auto shadow-2xl">
       <CardHeader>
         <button
@@ -402,5 +424,16 @@ export default function RegularUserForm({ onBack }) {
         </form>
       </CardContent>
     </Card>
+    
+    {/* Email Verification Dialog */}
+    <EmailVerificationDialog
+      isOpen={showEmailDialog}
+      onClose={() => {
+        setShowEmailDialog(false);
+        navigate(createPageUrl("SignIn"));
+      }}
+      email={registeredEmail}
+    />
+    </>
   );
 }
