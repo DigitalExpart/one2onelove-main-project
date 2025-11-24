@@ -1,7 +1,7 @@
 
 import React, { useState, useRef } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Heart, User, Mail, Calendar as CalendarIcon, MapPin, Edit, Save, X, Sparkles, Gift, TrendingUp, Award, ArrowRight, MessageCircle, Camera } from "lucide-react";
+import { Heart, User, Mail, Calendar as CalendarIcon, MapPin, Edit, Save, X, Sparkles, Gift, TrendingUp, Award, ArrowRight, MessageCircle, Camera, BookOpen, Target, CalendarDays, Palette, Users, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -597,11 +597,34 @@ export default function Profile() {
 
   const joinDate = user?.created_at ? new Date(user.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'Recently';
 
+  // Calculate profile completion
+  const profileFields = [
+    user?.name,
+    user?.email,
+    user?.location,
+    user?.partner_email,
+    user?.anniversary_date,
+    user?.love_language,
+    user?.relationship_status,
+    user?.avatar_url,
+    user?.date_frequency,
+    user?.communication_style,
+    user?.conflict_resolution,
+    user?.interests,
+    user?.bio,
+    user?.partner_name
+  ];
+  const completedFields = profileFields.filter(field => field).length;
+  const totalFields = profileFields.length;
+  const completionPercentage = Math.round((completedFields / totalFields) * 100);
+
   const quickActions = [
-    { icon: Heart, label: t.profile.actions.sendLoveNote, color: "from-pink-500 to-rose-500", link: "LoveNotes" },
-    { icon: CalendarIcon, label: t.profile.actions.calendar, color: "from-indigo-500 to-purple-500", link: "CouplesCalendar" },
-    { icon: Sparkles, label: t.profile.actions.aiCreator, color: "from-blue-500 to-cyan-500", link: "AIContentCreator" },
-    { icon: Gift, label: t.profile.actions.dateIdeas, color: "from-orange-500 to-yellow-500", link: "DateIdeas" }
+    { icon: Heart, label: "Send Love Note", color: "bg-gradient-to-br from-pink-500 to-rose-500", link: "LoveNotes" },
+    { icon: BookOpen, label: "My Diary", color: "bg-gradient-to-br from-purple-500 to-indigo-500", link: "SharedJournals" },
+    { icon: Target, label: "Relationship Goals", color: "bg-gradient-to-br from-pink-500 to-rose-500", link: "RelationshipGoals" },
+    { icon: CalendarDays, label: "Our Calendar", color: "bg-gradient-to-br from-purple-500 to-indigo-500", link: "CouplesCalendar" },
+    { icon: Sparkles, label: "AI Creator", color: "bg-gradient-to-br from-blue-500 to-cyan-500", link: "AIContentCreator" },
+    { icon: Gift, label: "Date Ideas", color: "bg-gradient-to-br from-orange-500 to-yellow-500", link: "DateIdeas" }
   ];
 
   const stats = [
@@ -684,33 +707,250 @@ export default function Profile() {
         </motion.div>
 
         {/* Quick Actions */}
-        <div className="mb-12">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">{t.profile.quickActions}</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <motion.div 
+          className="mb-12"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">Quick Actions</h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {quickActions.map((action, index) => {
               const Icon = action.icon;
               return (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: index * 0.1 }}
-                >
-                  <Link to={createPageUrl(action.link)}>
-                    <Card className="hover:shadow-xl transition-all cursor-pointer border-2 border-transparent hover:border-pink-200">
-                      <CardContent className="pt-6 text-center">
-                        <div className={`w-16 h-16 bg-gradient-to-br ${action.color} rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg`}>
-                          <Icon className="w-8 h-8 text-white" />
-                        </div>
-                        <p className="font-semibold text-gray-900">{action.label}</p>
-                      </CardContent>
-                    </Card>
-                  </Link>
-                </motion.div>
+                <Link key={index} to={createPageUrl(action.link)}>
+                  <Card className="hover:shadow-xl transition-all cursor-pointer border border-gray-200 hover:border-pink-300 h-full">
+                    <CardContent className="p-6 flex flex-col items-center text-center">
+                      <div className={`w-16 h-16 ${action.color} rounded-2xl flex items-center justify-center mb-3 shadow-lg`}>
+                        <Icon className="w-8 h-8 text-white" />
+                      </div>
+                      <p className="font-semibold text-gray-900">{action.label}</p>
+                    </CardContent>
+                  </Card>
+                </Link>
               );
             })}
           </div>
+        </motion.div>
+
+        {/* Recent Activity & Active Goals */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-12">
+          {/* Recent Activity */}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <Card className="shadow-lg h-full">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5" />
+                  Recent Activity
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-8">
+                  <div className="w-20 h-20 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <CalendarIcon className="w-10 h-10 text-gray-300" />
+                  </div>
+                  <p className="text-gray-500 mb-4">No recent activity</p>
+                  <Link to={createPageUrl("MemoryLane")}>
+                    <Button variant="outline" className="rounded-lg">
+                      Create Memory
+                    </Button>
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Active Goals */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <Card className="shadow-lg h-full">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Target className="w-5 h-5" />
+                  Active Goals
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-8">
+                  <div className="w-20 h-20 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <Target className="w-10 h-10 text-gray-300" />
+                  </div>
+                  <p className="text-gray-500 mb-4">No active goals yet</p>
+                  <Link to={createPageUrl("RelationshipGoals")}>
+                    <Button variant="outline" className="rounded-lg">
+                      Set Your First Goal
+                    </Button>
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
         </div>
+
+        {/* Preferences & Style */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="mb-12"
+        >
+          <Card className="shadow-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Palette className="w-5 h-5" />
+                Preferences & Style
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {/* Preferred Date Frequency */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-purple-600 mb-3">
+                    <CalendarIcon className="w-5 h-5" />
+                    <span className="font-semibold">Preferred Date Frequency</span>
+                  </div>
+                  <p className="text-gray-500 text-sm">{user?.date_frequency || "Not set"}</p>
+                </div>
+
+                {/* Communication Style */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-purple-600 mb-3">
+                    <MessageCircle className="w-5 h-5" />
+                    <span className="font-semibold">Communication Style</span>
+                  </div>
+                  <p className="text-gray-500 text-sm">{user?.communication_style || "Not set"}</p>
+                </div>
+
+                {/* Conflict Resolution */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-purple-600 mb-3">
+                    <Users className="w-5 h-5" />
+                    <span className="font-semibold">Conflict Resolution</span>
+                  </div>
+                  <p className="text-gray-500 text-sm">{user?.conflict_resolution || "Not set"}</p>
+                </div>
+
+                {/* Interests & Hobbies */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-purple-600 mb-3">
+                    <Gift className="w-5 h-5" />
+                    <span className="font-semibold">Interests & Hobbies</span>
+                  </div>
+                  <p className="text-gray-500 text-sm">{user?.interests || "Not set"}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Suggested Improvements */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="mb-12"
+        >
+          <Card className="shadow-lg border-2 border-orange-200 bg-gradient-to-br from-orange-50/50 to-yellow-50/50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-orange-700">
+                <Lightbulb className="w-5 h-5" />
+                Suggested Improvements
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {/* Add a personal bio */}
+                <Card className="bg-yellow-50/80 border border-orange-200 hover:shadow-md transition-all cursor-pointer">
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
+                        <Target className="w-5 h-5 text-orange-600" />
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-gray-900 mb-1">Add a personal bio</h4>
+                        <p className="text-sm text-gray-600">Share more about yourself</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Connect with your partner */}
+                <Link to={createPageUrl("Community")}>
+                  <Card className="bg-yellow-50/80 border border-orange-200 hover:shadow-md transition-all cursor-pointer h-full">
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
+                          <Target className="w-5 h-5 text-orange-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-gray-900 mb-1">Connect with your partner</h4>
+                          <p className="text-sm text-gray-600">Link your profiles together</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+
+                {/* Set relationship goals */}
+                <Link to={createPageUrl("RelationshipGoals")}>
+                  <Card className="bg-yellow-50/80 border border-orange-200 hover:shadow-md transition-all cursor-pointer h-full">
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
+                          <Target className="w-5 h-5 text-orange-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-gray-900 mb-1">Set relationship goals</h4>
+                          <p className="text-sm text-gray-600">Define what you want to achieve</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+
+                {/* Add your interests */}
+                <button onClick={handleEdit} className="text-left">
+                  <Card className="bg-yellow-50/80 border border-orange-200 hover:shadow-md transition-all cursor-pointer h-full">
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
+                          <Target className="w-5 h-5 text-orange-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-gray-900 mb-1">Add your interests</h4>
+                          <p className="text-sm text-gray-600">Help us personalize your experience</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </button>
+
+                {/* Complete preferences */}
+                <button onClick={handleEdit} className="text-left">
+                  <Card className="bg-yellow-50/80 border border-orange-200 hover:shadow-md transition-all cursor-pointer h-full">
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
+                          <Target className="w-5 h-5 text-orange-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-gray-900 mb-1">Complete preferences</h4>
+                          <p className="text-sm text-gray-600">Set communication and date preferences</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </button>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12">
@@ -888,55 +1128,6 @@ export default function Profile() {
           <SubscriptionCard user={user} currentLanguage={currentLanguage} />
         </div>
 
-        {/* Recent Activity - Moved to separate section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.3 }}
-          >
-            <Card className="shadow-xl h-full">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5" />
-                  {t.profile.recentActivity}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {memories.length > 0 ? (
-                  <div className="space-y-4">
-                    {memories.slice(0, 3).map((memory) => (
-                      <div key={memory.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                        <CalendarIcon className="w-5 h-5 text-purple-600 mt-1" />
-                        <div className="flex-1">
-                          <p className="font-semibold text-gray-900">{memory.title}</p>
-                          <p className="text-sm text-gray-600">{new Date(memory.memory_date).toLocaleDateString()}</p>
-                        </div>
-                      </div>
-                    ))}
-                    <Link to={createPageUrl("MemoryLane")}>
-                      <Button variant="outline" className="w-full">
-                        {t.profile.viewAll}
-                        <ArrowRight className="w-4 h-4 ml-2" />
-                      </Button>
-                    </Link>
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <CalendarIcon className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                    <p className="text-gray-500 mb-4">{t.profile.noActivity}</p>
-                    <Link to={createPageUrl("MemoryLane")}>
-                      <Button variant="outline">
-                        {t.profile.actions.createMemory}
-                      </Button>
-                    </Link>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </motion.div>
-        </div>
-
         {/* Recommendations */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -1007,11 +1198,42 @@ export default function Profile() {
           </motion.div>
         )}
 
+        {/* Profile Completion */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6 }}
+          className="mb-12"
+        >
+          <Card className="shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <User className="w-5 h-5 text-purple-600" />
+                  <span className="font-semibold text-gray-900">Profile Completion</span>
+                </div>
+                <span className="text-2xl font-bold text-purple-600">{completionPercentage}%</span>
+              </div>
+              <div className="mb-2">
+                <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${completionPercentage}%` }}
+                    transition={{ duration: 1, delay: 0.7 }}
+                    className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full"
+                  />
+                </div>
+              </div>
+              <p className="text-sm text-gray-600">{completedFields}/{totalFields} Complete</p>
+            </CardContent>
+          </Card>
+        </motion.div>
+
         {!isEditing && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
+            transition={{ delay: 0.7 }}
             className="flex flex-wrap gap-4 justify-center"
           >
             <Button 
