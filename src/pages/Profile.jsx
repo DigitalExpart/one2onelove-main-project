@@ -13,6 +13,7 @@ import { createPageUrl } from "@/utils";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { uploadProfilePicture, updateUserProfile } from "@/lib/profileService";
+import SubscriptionCard from "@/components/profile/SubscriptionCard";
 
 const translations = {
   en: {
@@ -883,9 +884,14 @@ export default function Profile() {
             </Card>
           </motion.div>
 
-          {/* Recent Activity */}
+          {/* Subscription Info */}
+          <SubscriptionCard user={user} currentLanguage={currentLanguage} />
+        </div>
+
+        {/* Recent Activity - Moved to separate section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
           <motion.div
-            initial={{ opacity: 0, x: 20 }}
+            initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.3 }}
           >
