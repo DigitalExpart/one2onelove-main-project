@@ -433,7 +433,7 @@ export default function Chat() {
 
   if (!user) {
     return (
-      <div className="fixed top-16 left-0 right-0 bottom-0 flex items-center justify-center bg-gray-50 z-10">
+      <div className="fixed inset-0 flex items-center justify-center bg-gray-50" style={{ top: '64px', zIndex: 999 }}>
         <div className="text-center">
           <p className="text-gray-500">Please sign in to use chat</p>
         </div>
@@ -442,7 +442,7 @@ export default function Chat() {
   }
 
   return (
-    <div className="fixed top-16 left-0 right-0 bottom-0 flex bg-gray-50 z-10">
+    <div className="fixed inset-0 flex bg-gray-50" style={{ top: '64px', zIndex: 999 }}>
       {/* Chat List */}
       <div
         className={`
