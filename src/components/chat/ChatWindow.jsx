@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
 import UserProfile from './UserProfile';
+import { UserPresenceBadge } from '@/components/presence/UserPresenceIndicator';
 
 export default function ChatWindow({
   chat,
@@ -97,14 +98,13 @@ export default function ChatWindow({
             <h3 className="text-base font-semibold text-gray-900 truncate">
               {chat.name}
             </h3>
-            {chat.isOnline && (
-              <p className="text-xs text-green-500">online</p>
-            )}
-            {!chat.isOnline && chat.lastSeen && (
-              <p className="text-xs text-gray-500">
-                last seen {new Date(chat.lastSeen).toLocaleTimeString()}
-              </p>
-            )}
+            {/* Real-time online/offline status */}
+            <UserPresenceBadge 
+              userId={chat.otherUserId} 
+              showDot={true} 
+              showText={true} 
+              size="sm" 
+            />
           </div>
         </div>
 

@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Users, Check, X, MessageCircle, Mail, MapPin, Heart } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { UserPresenceBadge } from "@/components/presence/UserPresenceIndicator";
 
 export default function BuddyCard({ buddy, onAccept, onDecline, showActions = false }) {
   // Handle both old format (user2_name) and new format (name) from Supabase
@@ -33,6 +34,15 @@ export default function BuddyCard({ buddy, onAccept, onDecline, showActions = fa
             <CardTitle className="text-lg font-bold text-gray-900">
               {buddyName}
             </CardTitle>
+            {/* Real-time online/offline status */}
+            <div className="mt-1">
+              <UserPresenceBadge 
+                userId={buddyUserId} 
+                showDot={true} 
+                showText={true} 
+                size="sm" 
+              />
+            </div>
             {buddy.status === 'active' && (
               <Badge className="bg-green-100 text-green-800 mt-1">
                 <Check className="w-3 h-3 mr-1" />

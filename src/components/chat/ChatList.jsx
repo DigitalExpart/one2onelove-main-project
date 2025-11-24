@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
+import { AvatarWithStatus } from '@/components/presence/UserPresenceIndicator';
 
 export default function ChatList({ 
   conversations, 
@@ -86,15 +87,15 @@ export default function ChatList({
                 selectedChatId === chat.id && "bg-gray-50"
               )}
             >
-              {/* Avatar */}
-              <div className="relative flex-shrink-0">
-                <Avatar className="w-12 h-12">
-                  <AvatarImage src={chat.avatar} alt={chat.name} />
-                  <AvatarFallback>{chat.name?.charAt(0) || 'U'}</AvatarFallback>
-                </Avatar>
-                {chat.isOnline && (
-                  <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full" />
-                )}
+              {/* Avatar with real-time online status */}
+              <div className="flex-shrink-0">
+                <AvatarWithStatus
+                  userId={chat.otherUserId}
+                  avatarUrl={chat.avatar}
+                  name={chat.name}
+                  size="lg"
+                  showStatus={true}
+                />
               </div>
 
               {/* Chat Info */}

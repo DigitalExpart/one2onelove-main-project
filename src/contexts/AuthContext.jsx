@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase, handleSupabaseError, isSupabaseConfigured } from '@/lib/supabase';
+import { initializePresence, cleanupPresence } from '@/lib/presenceService';
 
 const AuthContext = createContext(null);
 
@@ -128,6 +129,10 @@ export function AuthProvider({ children }) {
           console.log('✅ Session found for:', session.user.email);
           const userData = await ensureUserProfile(session.user);
           setUser(userData);
+          
+          // Initialize presence for existing session
+          console.log('🟢 Initializing presence for existing session...');
+          await initializePresence();
         } else {
           console.log('⚠️ No active session found');
         }
@@ -202,6 +207,11 @@ export function AuthProvider({ children }) {
 
       const userData = await ensureUserProfile(data.user);
       setUser(userData);
+      
+      // Initialize presence tracking for online/offline status
+      console.log('🟢 Initializing presence tracking...');
+      await initializePresence();
+      
       console.log('Login successful');
       return { success: true, user: userData };
     } catch (error) {
@@ -212,6 +222,10 @@ export function AuthProvider({ children }) {
 
   const logout = async () => {
     try {
+      // Clean up presence before logging out
+      console.log('🔴 Cleaning up presence tracking...');
+      await cleanupPresence();
+      
       const { error } = await supabase.auth.signOut();
       if (error) {
         console.error('Logout error:', error);
