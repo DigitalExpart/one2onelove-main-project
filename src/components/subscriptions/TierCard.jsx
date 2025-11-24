@@ -1,10 +1,48 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Check, Sparkles } from 'lucide-react';
+import { Check, Sparkles, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { handleSubscriptionCheckout } from '@/lib/stripeService';
+import { toast } from 'sonner';
 
-export default function TierCard({ tier, index, onSelect, isSelected }) {
+export default function TierCard({ tier, index, onSelect, isSelected, showPayment = false }) {
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const handleChoosePlan = async () => {
+    if (onSelect && !showPayment) {
+      // If in signup flow, just select the plan
+      onSelect(tier);
+      return;
+    }
+
+    // If showing payment, process checkout
+    if (showPayment) {
+      setIsProcessing(true);
+      
+      try {
+        const result = await handleSubscriptionCheckout(tier);
+        
+        if (!result.success) {
+          toast.error(result.error || 'Failed to process payment');
+        }
+        // Note: For successful paid checkout, user will be redirected to Stripe
+        // For free plan, user stays on page and sees success message
+        if (tier.isFree) {
+          toast.success('Successfully subscribed to Basis plan!');
+          // Reload to refresh user data
+          setTimeout(() => window.location.reload(), 1000);
+        }
+      } catch (error) {
+        console.error('Checkout error:', error);
+        toast.error('An error occurred. Please try again.');
+      } finally {
+        setIsProcessing(false);
+      }
+    } else if (onSelect) {
+      onSelect(tier);
+    }
+  };
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -62,7 +100,8 @@ export default function TierCard({ tier, index, onSelect, isSelected }) {
           </ul>
 
           <Button
-            onClick={() => onSelect(tier)}
+            onClick={handleChoosePlan}
+            disabled={isProcessing}
             className={`w-full text-lg py-6 font-semibold transition-all duration-300 ${
               tier.popular 
                 ? 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-lg' 
@@ -71,7 +110,16 @@ export default function TierCard({ tier, index, onSelect, isSelected }) {
               isSelected ? 'ring-4 ring-purple-500' : ''
             }`}
           >
-            {isSelected ? '✓ Selected' : `Choose ${tier.name}`}
+            {isProcessing ? (
+              <>
+                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                Processing...
+              </>
+            ) : isSelected ? (
+              '✓ Selected'
+            ) : (
+              `Choose ${tier.name}`
+            )}
           </Button>
         </CardContent>
       </Card>
