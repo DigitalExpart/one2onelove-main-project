@@ -5,6 +5,7 @@ import { Heart, User, Mail, Calendar as CalendarIcon, MapPin, Edit, Save, X, Spa
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { motion } from "framer-motion";
 import { useLanguage } from "@/Layout";
@@ -477,7 +478,8 @@ export default function Profile() {
       partner_email: user?.partner_email || "",
       anniversary_date: user?.anniversary_date || "",
       love_language: user?.love_language || "",
-      relationship_status: user?.relationship_status || ""
+      relationship_status: user?.relationship_status || "",
+      bio: user?.bio || ""
     });
     setIsEditing(true);
   };
@@ -1086,6 +1088,27 @@ export default function Profile() {
                       />
                     ) : (
                       <p className="font-medium text-gray-900">{user?.location || t.profile.notSet}</p>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Personal Bio */}
+                <div className="flex items-start gap-3">
+                  <BookOpen className="w-5 h-5 text-pink-500 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-500">Bio</p>
+                    {isEditing ? (
+                      <Textarea
+                        value={editData.bio}
+                        onChange={(e) => setEditData({...editData, bio: e.target.value})}
+                        placeholder="Tell us about yourself..."
+                        rows={4}
+                        className="resize-none"
+                      />
+                    ) : (
+                      <p className="font-medium text-gray-900 whitespace-pre-wrap">
+                        {user?.bio || t.profile.notSet}
+                      </p>
                     )}
                   </div>
                 </div>
