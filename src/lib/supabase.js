@@ -17,49 +17,55 @@ if (!isSupabaseConfigured()) {
   console.error('VITE_SUPABASE_ANON_KEY=your-supabase-anon-key');
 }
 
-// Create Supabase client (even if not configured, to avoid errors)
+// Create Supabase client with enhanced session persistence
 export const supabase = createClient(
   supabaseUrl || 'https://placeholder.supabase.co', 
   supabaseAnonKey || 'placeholder-key', 
   {
     auth: {
+      // Enable automatic token refresh before expiry (refresh 60 seconds before expiry)
       autoRefreshToken: true,
+      // Persist session across browser refreshes and tabs
       persistSession: true,
+      // Detect OAuth callbacks
       detectSessionInUrl: true,
+      // Use localStorage for persistence (survives tab/window close)
       storage: window.localStorage,
-      storageKey: 'sb-one2one-auth-token',
-      flowType: 'pkce',
-      debug: true // Enable debug mode
+      // Consistent storage key for this app (DO NOT CHANGE THIS - it will log users out)
+      storageKey: 'sb-one2one-love-auth-token',
+      // Use implicit flow for better compatibility
+      flowType: 'implicit',
+      // Enable debug logging in development
+      debug: import.meta.env.DEV
     },
     global: {
       headers: {
-        'X-Client-Info': 'one2one-love'
+        'X-Client-Info': 'one2one-love-app'
+      }
+    },
+    // Configure realtime options
+    realtime: {
+      params: {
+        eventsPerSecond: 10
       }
     }
   }
 );
 
-// Force session restoration on page load
-window.addEventListener('load', () => {
-  supabase.auth.getSession().then(({ data, error }) => {
-    if (data.session) {
-      console.log('🔄 Session restored on page load:', data.session.user.email);
-    }
-  });
-});
-
-// Log session status for debugging
-if (isSupabaseConfigured()) {
-  supabase.auth.getSession().then(({ data, error }) => {
+// Add session recovery helper
+export const recoverSession = async () => {
+  try {
+    const { data: { session }, error } = await supabase.auth.getSession();
     if (error) {
-      console.error('🔐 Session check error:', error);
-    } else if (data.session) {
-      console.log('✅ Active session found:', data.session.user.email);
-    } else {
-      console.log('⚠️ No active session');
+      console.error('Error recovering session:', error);
+      return null;
     }
-  });
-}
+    return session;
+  } catch (error) {
+    console.error('Failed to recover session:', error);
+    return null;
+  }
+};
 
 // Helper function to handle Supabase errors
 export const handleSupabaseError = (error) => {

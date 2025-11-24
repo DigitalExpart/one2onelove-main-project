@@ -112,6 +112,8 @@ export function AuthProvider({ children }) {
   // Check for existing session on mount
   useEffect(() => {
     console.log('🚀 AuthContext: Initializing...');
+    let mounted = true;
+    let refreshInterval;
     
     const checkAuth = async () => {
       try {
@@ -121,59 +123,118 @@ export function AuthProvider({ children }) {
         
         if (error) {
           console.error('❌ Error getting session:', error);
-          setIsLoading(false);
+          if (mounted) setIsLoading(false);
           return;
         }
 
-        if (session?.user) {
+        if (session?.user && mounted) {
           console.log('✅ Session found for:', session.user.email);
           const userData = await ensureUserProfile(session.user);
-          setUser(userData);
-          
-          // Initialize presence for existing session
-          console.log('🟢 Initializing presence for existing session...');
-          await initializePresence();
+          if (mounted) {
+            setUser(userData);
+            // Initialize presence for existing session
+            console.log('🟢 Initializing presence for existing session...');
+            await initializePresence();
+          }
         } else {
           console.log('⚠️ No active session found');
         }
       } catch (error) {
         console.error('💥 Error checking auth:', error);
       } finally {
-        setIsLoading(false);
+        if (mounted) setIsLoading(false);
       }
     };
 
     checkAuth();
 
-    // Listen for auth state changes
+    // Set up periodic session check (every 5 minutes) to ensure session is valid
+    refreshInterval = setInterval(async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session && user && mounted) {
+          console.log('⚠️ Session expired, clearing user state');
+          setUser(null);
+        } else if (session && !user && mounted) {
+          console.log('🔄 Session recovered, restoring user state');
+          const userData = await ensureUserProfile(session.user);
+          if (mounted) {
+            setUser(userData);
+            await initializePresence();
+          }
+        }
+      } catch (error) {
+        console.error('Error checking session:', error);
+      }
+    }, 5 * 60 * 1000); // 5 minutes
+
+    // Listen for auth state changes with improved handling
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('🔔 Auth state changed:', event, session?.user?.email);
+      
+      if (!mounted) return;
       
       if (event === 'SIGNED_IN' && session?.user) {
         console.log('✅ User signed in:', session.user.email);
         const userData = await ensureUserProfile(session.user);
-        setUser(userData);
+        if (mounted) {
+          setUser(userData);
+          await initializePresence();
+        }
       } else if (event === 'SIGNED_OUT') {
         console.log('👋 User signed out');
-        setUser(null);
+        if (mounted) {
+          setUser(null);
+          await cleanupPresence();
+        }
       } else if (event === 'TOKEN_REFRESHED') {
         console.log('🔄 Token refreshed for:', session?.user?.email);
-        if (session?.user) {
-          const userData = await ensureUserProfile(session.user);
-          setUser(userData);
-        }
+        // Keep session alive - no action needed
       } else if (event === 'USER_UPDATED') {
         console.log('📝 User updated:', session?.user?.email);
-        if (session?.user) {
+        if (session?.user && mounted) {
           const userData = await ensureUserProfile(session.user);
+          if (mounted) setUser(userData);
+        }
+      } else if (event === 'INITIAL_SESSION' && session?.user) {
+        console.log('🔵 Initial session loaded:', session.user.email);
+        // Session restored from localStorage
+        const userData = await ensureUserProfile(session.user);
+        if (mounted) {
           setUser(userData);
+          await initializePresence();
         }
       }
     });
 
+    // Handle page visibility changes to maintain session
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible' && mounted) {
+        console.log('👀 Page became visible, checking session...');
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user && !user) {
+            console.log('🔄 Restoring session after visibility change');
+            const userData = await ensureUserProfile(session.user);
+            if (mounted) {
+              setUser(userData);
+              await initializePresence();
+            }
+          }
+        } catch (error) {
+          console.error('Error restoring session:', error);
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     return () => {
       console.log('🧹 Cleaning up auth listener');
+      mounted = false;
       subscription.unsubscribe();
+      if (refreshInterval) clearInterval(refreshInterval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
 
