@@ -7,7 +7,7 @@
 -- Add subscription fields to users table
 ALTER TABLE public.users 
 ADD COLUMN IF NOT EXISTS subscription_plan TEXT DEFAULT 'Basis',
-ADD COLUMN IF NOT EXISTS subscription_price DECIMAL(10,2) DEFAULT 9.99,
+ADD COLUMN IF NOT EXISTS subscription_price DECIMAL(10,2) DEFAULT 0.00,
 ADD COLUMN IF NOT EXISTS subscription_status TEXT DEFAULT 'active',
 ADD COLUMN IF NOT EXISTS subscription_start_date TIMESTAMPTZ DEFAULT NOW(),
 ADD COLUMN IF NOT EXISTS subscription_end_date TIMESTAMPTZ;
@@ -58,7 +58,7 @@ ORDER BY ordinal_position;
 UPDATE public.users
 SET 
   subscription_plan = 'Basis',
-  subscription_price = 9.99,
+  subscription_price = 0.00,
   subscription_status = 'active',
   subscription_start_date = created_at
 WHERE subscription_plan IS NULL;

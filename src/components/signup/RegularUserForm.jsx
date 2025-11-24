@@ -217,7 +217,7 @@ export default function RegularUserForm({ onBack, selectedPlan }) {
         anniversaryDate: formData.anniversaryDate,
         partnerEmail: formData.partnerEmail,
         subscriptionPlan: selectedPlan ? selectedPlan.name : 'Basis', // Default to Basis if no plan selected
-        subscriptionPrice: selectedPlan ? selectedPlan.price : 9.99,
+        subscriptionPrice: selectedPlan ? selectedPlan.price : 0, // Basis is now free
       });
 
       console.log('Register result:', result);
@@ -272,8 +272,14 @@ export default function RegularUserForm({ onBack, selectedPlan }) {
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-2xl font-bold text-gray-900">${selectedPlan.price}</p>
-                <p className="text-sm text-gray-600">per {selectedPlan.period}</p>
+                {selectedPlan.isFree ? (
+                  <p className="text-2xl font-bold text-green-600">Free</p>
+                ) : (
+                  <>
+                    <p className="text-2xl font-bold text-gray-900">${selectedPlan.price}</p>
+                    <p className="text-sm text-gray-600">per {selectedPlan.period}</p>
+                  </>
+                )}
               </div>
             </div>
           </div>

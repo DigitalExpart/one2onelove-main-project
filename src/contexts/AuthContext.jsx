@@ -322,7 +322,7 @@ export function AuthProvider({ children }) {
             anniversary_date: anniversaryDate,
             partner_email: partnerEmail,
             subscription_plan: subscriptionPlan || 'Basis',
-            subscription_price: subscriptionPrice || 9.99,
+            subscription_price: subscriptionPrice !== undefined ? subscriptionPrice : 0,
           },
         },
       });
@@ -349,7 +349,7 @@ export function AuthProvider({ children }) {
             anniversary_date: anniversaryDate || null,
             partner_email: partnerEmail || null,
             subscription_plan: subscriptionPlan || 'Basis',
-            subscription_price: subscriptionPrice || 9.99,
+            subscription_price: subscriptionPrice !== undefined ? subscriptionPrice : 0, // Basis is now free
             subscription_status: 'active',
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
