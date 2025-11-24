@@ -402,28 +402,27 @@ export const markMessagesAsRead = async (conversationId) => {
       throw messagesError;
     }
 
-    // Reset unread count in conversation
-    const { error: convError } = await supabase.rpc('reset_unread_count', {
-      p_conversation_id: conversationId,
-      p_user_id: user.id
-    });
+    // Get conversation to determine which field to update
+    const { data: conv } = await supabase
+      .from('conversations')
+      .select('user1_id, user2_id')
+      .eq('id', conversationId)
+      .single();
 
-    // If the function doesn't exist, update manually
-    if (convError && convError.code === '42883') {
-      const { data: conv } = await supabase
+    if (conv) {
+      const isUser1 = conv.user1_id === user.id;
+      const updateField = isUser1 ? 'user1_unread_count' : 'user2_unread_count';
+      
+      // Reset unread count to 0
+      const { error: updateError } = await supabase
         .from('conversations')
-        .select('user1_id, user2_id')
-        .eq('id', conversationId)
-        .single();
+        .update({ [updateField]: 0 })
+        .eq('id', conversationId);
 
-      if (conv) {
-        const isUser1 = conv.user1_id === user.id;
-        const updateField = isUser1 ? 'user1_unread_count' : 'user2_unread_count';
-        
-        await supabase
-          .from('conversations')
-          .update({ [updateField]: 0 })
-          .eq('id', conversationId);
+      if (updateError) {
+        console.error('Error resetting unread count:', updateError);
+      } else {
+        console.log(`✅ Reset ${updateField} to 0 for conversation:`, conversationId);
       }
     }
 

@@ -302,10 +302,19 @@ export default function Chat() {
     const chat = conversations.find((c) => c.id === chatId);
     setSelectedChat(chat);
     
-    // Mark messages as read
+    // Mark messages as read and refresh conversations immediately
     if (chatId) {
-      await markMessagesAsRead(chatId);
-      queryClient.invalidateQueries(['conversations']);
+      try {
+        await markMessagesAsRead(chatId);
+        // Refetch both messages and conversations to update UI
+        await Promise.all([
+          queryClient.invalidateQueries(['messages', chatId]),
+          queryClient.invalidateQueries(['conversations'])
+        ]);
+        console.log('✅ Chat selected and messages marked as read');
+      } catch (error) {
+        console.error('Error marking messages as read:', error);
+      }
     }
   };
 
