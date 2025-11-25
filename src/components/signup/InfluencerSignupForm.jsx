@@ -131,7 +131,7 @@ export default function InfluencerSignupForm({
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          Media Kit URL
+          Media Kit URL <span className="text-gray-400 text-xs font-normal">(Optional)</span>
         </label>
         <input
           type="url"

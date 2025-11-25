@@ -1,0 +1,35 @@
+========================================
+ADD THIS TO YOUR .env FILE
+========================================
+
+Open your .env file (in the root of your project) and add this line:
+
+VITE_STRIPE_PUBLISHABLE_KEY=pk_test_PLACEHOLDER_WILL_ADD_REAL_KEY_LATER
+
+That's it! This placeholder will let your app run without errors.
+
+========================================
+WHEN READY TO ADD REAL STRIPE KEY:
+========================================
+
+1. Go to: https://dashboard.stripe.com
+2. Sign in or create a free account
+3. Click "Developers" → "API keys"
+4. Copy the "Publishable key" (starts with pk_test_...)
+5. Replace the placeholder in .env with your real key
+6. Restart: npm run dev
+
+========================================
+FOR NOW, YOU CAN:
+========================================
+
+✅ Run the app normally
+✅ View subscription pages
+✅ Use free "Basis" plan fully
+✅ Develop premium features
+✅ Test UI/UX flow
+
+❌ Can't process real payments yet (add real key when ready)
+
+========================================
+

@@ -1,6 +1,5 @@
 
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Plus, Target, TrendingUp, CheckCircle2, ArrowLeft } from "lucide-react";
@@ -9,6 +8,7 @@ import { useLanguage } from "@/Layout";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import goalsService from "@/lib/goalsService";
 
 import GoalForm from "../components/goals/GoalForm";
 import GoalCard from "../components/goals/GoalCard";
@@ -128,36 +128,45 @@ export default function RelationshipGoals() {
 
   const { data: goals = [], isLoading } = useQuery({
     queryKey: ['relationship-goals'],
-    queryFn: () => base44.entities.RelationshipGoal.list('-created_date'),
+    queryFn: () => goalsService.getGoals('-created_at'),
     initialData: [],
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.RelationshipGoal.create(data),
+    mutationFn: (data) => goalsService.createGoal(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['relationship-goals'] });
       setShowForm(false);
       setEditingGoal(null);
       toast.success(t.goalAdded);
+    },
+    onError: (error) => {
+      toast.error('Failed to create goal: ' + error.message);
     }
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.RelationshipGoal.update(id, data),
+    mutationFn: ({ id, data }) => goalsService.updateGoal(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['relationship-goals'] });
       setShowForm(false);
       setEditingGoal(null);
       setUpdatingGoal(null);
       toast.success(t.goalUpdated);
+    },
+    onError: (error) => {
+      toast.error('Failed to update goal: ' + error.message);
     }
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.RelationshipGoal.delete(id),
+    mutationFn: (id) => goalsService.deleteGoal(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['relationship-goals'] });
       toast.success(t.goalDeleted);
+    },
+    onError: (error) => {
+      toast.error('Failed to delete goal: ' + error.message);
     }
   });
 

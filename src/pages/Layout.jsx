@@ -2,9 +2,11 @@
 import React, { useState, createContext, useContext, useRef, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Heart, Home, ChevronDown, User, LogIn, LogOut, Users, UserPlus, Menu, X, Sparkles, Target, Code, Rainbow, UserCheck, Gift, MessageCircle } from "lucide-react";
+import { Heart, Home, ChevronDown, User, LogIn, LogOut, Users, UserPlus, Menu, X, Sparkles, Target, Code, Rainbow, UserCheck, Gift, MessageCircle, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import { useQuery } from "@tanstack/react-query";
+import { getMyConversations } from "@/lib/chatService";
 import {
   Select,
   SelectContent,
@@ -103,7 +105,18 @@ function LanguageContent({ children, currentPageName }) {
   const selectedLanguage = languages.find(lang => lang.code === currentLanguage);
 
   // Get authentication state
-  const { isAuthenticated, logout } = useAuth();
+  const { isAuthenticated, logout, user } = useAuth();
+
+  // Fetch conversations to get unread message count
+  const { data: conversations = [] } = useQuery({
+    queryKey: ['conversations'],
+    queryFn: getMyConversations,
+    enabled: !!user && isAuthenticated,
+    refetchInterval: 10000, // Refetch every 10 seconds
+  });
+
+  // Calculate total unread messages count
+  const totalUnreadCount = conversations.reduce((total, conv) => total + (conv.unreadCount || 0), 0);
 
   const handleMouseEnter = () => {
     if (closeTimeoutRef.current) {
@@ -126,8 +139,8 @@ function LanguageContent({ children, currentPageName }) {
     navigate(createPageUrl("SignUp"));
   };
 
-  const handleSignOut = () => {
-    logout();
+  const handleSignOut = async () => {
+    await logout();
     navigate(createPageUrl("Home"));
   };
 
@@ -321,13 +334,15 @@ function LanguageContent({ children, currentPageName }) {
                 {t.nav.lgbtq}
               </Link>
               
-              <Link
-                to={createPageUrl("Profile")}
-                className="flex items-center gap-1 text-white/80 hover:text-white hover:bg-white/10 px-3 py-2 rounded-lg transition-all font-medium text-sm"
-              >
-                <User className="w-4 h-4" />
-                {t.nav.profile}
-              </Link>
+              {isAuthenticated && (
+                <Link
+                  to={createPageUrl("Profile")}
+                  className="flex items-center gap-1 text-white/80 hover:text-white hover:bg-white/10 px-3 py-2 rounded-lg transition-all font-medium text-sm"
+                >
+                  <User className="w-4 h-4" />
+                  {t.nav.profile}
+                </Link>
+              )}
 
               <Link
                 to={createPageUrl("Developer")}
@@ -340,6 +355,21 @@ function LanguageContent({ children, currentPageName }) {
 
             {/* Right side buttons */}
             <div className="flex items-center gap-2">
+              {/* Friend Requests Icon - Only show when authenticated */}
+              {isAuthenticated && (
+                <Link to={createPageUrl("FriendRequests")} className="hidden md:block">
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    className="text-white/80 hover:text-white hover:bg-white/10 whitespace-nowrap relative" 
+                    title="Friend Requests"
+                  >
+                    <Bell className="w-5 h-5" />
+                    <span className="hidden xl:inline ml-2">Requests</span>
+                  </Button>
+                </Link>
+              )}
+
               {/* Chat Icon - Only show when authenticated */}
               {isAuthenticated && (
                 <Link to={createPageUrl("Chat")} className="hidden md:block">
@@ -351,6 +381,11 @@ function LanguageContent({ children, currentPageName }) {
                   >
                     <MessageCircle className="w-5 h-5" />
                     <span className="hidden xl:inline ml-2">Chat</span>
+                    {totalUnreadCount > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
+                        {totalUnreadCount > 9 ? '9+' : totalUnreadCount}
+                      </span>
+                    )}
                   </Button>
                 </Link>
               )}
@@ -632,14 +667,16 @@ function LanguageContent({ children, currentPageName }) {
                   <Rainbow className="w-5 h-5" />
                   {t.nav.lgbtq}
                 </Link>
-                <Link
-                  to={createPageUrl("Profile")}
-                  className="flex items-center gap-2 text-white hover:bg-white/10 px-4 py-3 rounded-lg transition-all"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <User className="w-5 h-5" />
-                  {t.nav.profile}
-                </Link>
+                {isAuthenticated && (
+                  <Link
+                    to={createPageUrl("Profile")}
+                    className="flex items-center gap-2 text-white hover:bg-white/10 px-4 py-3 rounded-lg transition-all"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <User className="w-5 h-5" />
+                    {t.nav.profile}
+                  </Link>
+                )}
                 <Link
                   to={createPageUrl("Developer")}
                   className="flex items-center gap-2 text-yellow-300 hover:bg-white/10 px-4 py-3 rounded-lg transition-all"
@@ -650,15 +687,32 @@ function LanguageContent({ children, currentPageName }) {
                 </Link>
                 <div className="border-t border-white/20 my-2"></div>
                 
+                {/* Friend Requests - Only show when authenticated */}
+                {isAuthenticated && (
+                  <Link
+                    to={createPageUrl("FriendRequests")}
+                    className="flex items-center gap-2 text-white hover:bg-white/10 px-4 py-3 rounded-lg transition-all"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <Bell className="w-5 h-5" />
+                    Friend Requests
+                  </Link>
+                )}
+
                 {/* Chat - Only show when authenticated */}
                 {isAuthenticated && (
                   <Link
                     to={createPageUrl("Chat")}
-                    className="flex items-center gap-2 text-white hover:bg-white/10 px-4 py-3 rounded-lg transition-all"
+                    className="flex items-center gap-2 text-white hover:bg-white/10 px-4 py-3 rounded-lg transition-all relative"
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     <MessageCircle className="w-5 h-5" />
                     Chat
+                    {totalUnreadCount > 0 && (
+                      <span className="ml-auto bg-red-500 text-white text-xs rounded-full h-6 w-6 flex items-center justify-center font-bold">
+                        {totalUnreadCount > 9 ? '9+' : totalUnreadCount}
+                      </span>
+                    )}
                   </Link>
                 )}
 

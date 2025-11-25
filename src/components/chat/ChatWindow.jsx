@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
 import UserProfile from './UserProfile';
+import { UserPresenceBadge } from '@/components/presence/UserPresenceIndicator';
 
 export default function ChatWindow({
   chat,
@@ -97,14 +98,13 @@ export default function ChatWindow({
             <h3 className="text-base font-semibold text-gray-900 truncate">
               {chat.name}
             </h3>
-            {chat.isOnline && (
-              <p className="text-xs text-green-500">online</p>
-            )}
-            {!chat.isOnline && chat.lastSeen && (
-              <p className="text-xs text-gray-500">
-                last seen {new Date(chat.lastSeen).toLocaleTimeString()}
-              </p>
-            )}
+            {/* Real-time online/offline status */}
+            <UserPresenceBadge 
+              userId={chat.otherUserId} 
+              showDot={true} 
+              showText={true} 
+              size="sm" 
+            />
           </div>
         </div>
 
@@ -129,7 +129,7 @@ export default function ChatWindow({
                 <MoreVertical className="w-5 h-5 text-gray-600" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuContent align="end" className="w-56 z-[1000]">
               <DropdownMenuItem onClick={() => setShowProfile(true)}>
                 <Search className="w-4 h-4 mr-2" />
                 View Profile
@@ -283,67 +283,70 @@ export default function ChatWindow({
               </div>
             </div>
           ) : (
-            messages.map((message, index) => {
-              const isOwn = message.senderId === currentUserId;
-              const showAvatar = index === 0 || messages[index - 1].senderId !== message.senderId;
-              const showTime = index === messages.length - 1 || 
-                new Date(message.timestamp) - new Date(messages[index + 1].timestamp) > 300000; // 5 minutes
+            <>
+              {messages.map((message, index) => {
+                const isOwn = message.senderId === currentUserId;
+                const showAvatar = index === 0 || messages[index - 1].senderId !== message.senderId;
+                const showTime = index === messages.length - 1 || 
+                  new Date(message.timestamp) - new Date(messages[index + 1].timestamp) > 300000; // 5 minutes
 
-              return (
-                <div key={message.id || index} data-message-id={message.id}>
-                  <ChatMessage
-                    message={message}
-                    isOwn={isOwn}
-                    showAvatar={showAvatar}
-                    showTime={showTime}
-                  onReply={(msg) => {
-                    // TODO: Implement reply functionality
-                    console.log('Reply to:', msg);
-                  }}
-                  onForward={(msg) => {
-                    // TODO: Implement forward functionality
-                    console.log('Forward:', msg);
-                  }}
-                  onStar={(msg, isStarred) => {
-                    // TODO: Implement star functionality
-                    console.log('Star:', msg, isStarred);
-                  }}
-                  onPin={(msg, isPinned, expiryDate) => {
-                    if (onPin) {
-                      onPin(msg.id, isPinned, expiryDate);
-                    }
-                  }}
-                  onDelete={(msg, deleteType) => {
-                    if (onDeleteMessage) {
-                      onDeleteMessage(msg.id, deleteType);
-                    }
-                  }}
-                  onSelect={(msg) => {
-                    // TODO: Implement select functionality
-                    console.log('Select:', msg);
-                  }}
-                  onShare={(msg) => {
-                    // TODO: Implement share functionality
-                    console.log('Share:', msg);
-                  }}
-                  onReact={(msg, emoji) => {
-                    // TODO: Implement reaction functionality
-                    console.log('React:', msg, emoji);
-                  }}
-                  onCopy={(msg) => {
-                    // TODO: Implement copy functionality
-                    console.log('Copy:', msg);
-                  }}
-                  onEdit={(msg, newText) => {
-                    if (onEditMessage) {
-                      onEditMessage(msg.id, newText);
-                    }
-                  }}
-                />
-              );
-            })
+                return (
+                  <div key={message.id || index} data-message-id={message.id}>
+                    <ChatMessage
+                      message={message}
+                      isOwn={isOwn}
+                      showAvatar={showAvatar}
+                      showTime={showTime}
+                      onReply={(msg) => {
+                        // TODO: Implement reply functionality
+                        console.log('Reply to:', msg);
+                      }}
+                      onForward={(msg) => {
+                        // TODO: Implement forward functionality
+                        console.log('Forward:', msg);
+                      }}
+                      onStar={(msg, isStarred) => {
+                        // TODO: Implement star functionality
+                        console.log('Star:', msg, isStarred);
+                      }}
+                      onPin={(msg, isPinned, expiryDate) => {
+                        if (onPin) {
+                          onPin(msg.id, isPinned, expiryDate);
+                        }
+                      }}
+                      onDelete={(msg, deleteType) => {
+                        if (onDeleteMessage) {
+                          onDeleteMessage(msg.id, deleteType);
+                        }
+                      }}
+                      onSelect={(msg) => {
+                        // TODO: Implement select functionality
+                        console.log('Select:', msg);
+                      }}
+                      onShare={(msg) => {
+                        // TODO: Implement share functionality
+                        console.log('Share:', msg);
+                      }}
+                      onReact={(msg, emoji) => {
+                        // TODO: Implement reaction functionality
+                        console.log('React:', msg, emoji);
+                      }}
+                      onCopy={(msg) => {
+                        // TODO: Implement copy functionality
+                        console.log('Copy:', msg);
+                      }}
+                      onEdit={(msg, newText) => {
+                        if (onEditMessage) {
+                          onEditMessage(msg.id, newText);
+                        }
+                      }}
+                    />
+                  </div>
+                );
+              })}
+              <div ref={messagesEndRef} />
+            </>
           )}
-          <div ref={messagesEndRef} />
         </div>
       </div>
 

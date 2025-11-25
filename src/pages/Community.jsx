@@ -13,6 +13,8 @@ import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import ForumCard from "../components/community/ForumCard";
 import ForumPostCard from "../components/community/ForumPostCard";
+import { useAuth } from "@/contexts/AuthContext";
+import { getMyBuddies } from "@/lib/buddyService";
 import StoryCard from "../components/community/StoryCard";
 import BuddyCard from "../components/community/BuddyCard";
 import PostStoryForm from "../components/community/PostStoryForm";
@@ -53,6 +55,7 @@ export default function Community() {
   const { currentLanguage } = useLanguage();
   const t = translations[currentLanguage] || translations.en;
   const queryClient = useQueryClient();
+  const { user } = useAuth(); // Get current user from Supabase
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTab, setSelectedTab] = useState('forums');
@@ -79,36 +82,28 @@ export default function Community() {
     initialData: [],
   });
 
+  // Fetch REAL buddies from Supabase
   const { data: myBuddies = [] } = useQuery({
-    queryKey: ['myBuddies', currentUser?.email],
+    queryKey: ['myBuddies', user?.id],
     queryFn: async () => {
+      if (!user?.id) return [];
+      console.log('📋 Fetching buddies for user:', user.id);
       try {
-        const buddies = await base44.entities.BuddyMatch.list();
-        return buddies.filter(b => 
-          b.user1_email === currentUser?.email || b.user2_email === currentUser?.email
-        );
-      } catch {
-        // Return mock data for development
-        return [
-          {
-            id: '1',
-            user2_name: 'Sarah Johnson',
-            user1_name: currentUser?.name || 'You',
-            status: 'active',
-            match_reason: 'Matched based on shared interests in photography and travel',
-            shared_interests: ['Photography', 'Travel', 'Cooking'],
-            accountability_goal: 'Weekly check-ins on relationship goals',
-          },
-        ];
+        const buddies = await getMyBuddies(user.id);
+        console.log('✅ Fetched buddies:', buddies);
+        return buddies;
+      } catch (error) {
+        console.error('❌ Error fetching buddies:', error);
+        return [];
       }
     },
-    enabled: !!currentUser,
+    enabled: !!user?.id,
     initialData: [],
   });
 
-  // Filter buddies to show only active friends
-  const activeBuddies = myBuddies.filter(b => b.status === 'active');
-  const pendingBuddies = myBuddies.filter(b => b.status === 'pending');
+  // Filter buddies - accepted friends only (from Supabase)
+  const activeBuddies = myBuddies;
+  const pendingBuddies = []; // No pending here, those are in FriendRequests page
 
   const { data: forumPosts = [] } = useQuery({
     queryKey: ['forumPosts', selectedForum?.id],
@@ -314,10 +309,10 @@ export default function Community() {
             <div className="flex justify-between items-center mb-6">
               <p className="text-gray-600">{t.buddiesDesc}</p>
               <Link to={createPageUrl("FindFriends")}>
-                <Button className="bg-gradient-to-r from-purple-500 to-pink-500">
-                  <UserPlus className="w-5 h-5 mr-2" />
-                  {t.findBuddy}
-                </Button>
+              <Button className="bg-gradient-to-r from-purple-500 to-pink-500">
+                <UserPlus className="w-5 h-5 mr-2" />
+                {t.findBuddy}
+              </Button>
               </Link>
             </div>
 
@@ -343,17 +338,17 @@ export default function Community() {
             {pendingBuddies.length > 0 && (
               <div className="mb-8">
                 <h3 className="text-xl font-semibold text-gray-900 mb-4">Pending Requests</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {pendingBuddies.map((buddy) => (
-                    <BuddyCard
-                      key={buddy.id}
-                      buddy={buddy}
-                      onAccept={handleAcceptBuddy}
-                      onDecline={handleDeclineBuddy}
+                <BuddyCard
+                  key={buddy.id}
+                  buddy={buddy}
+                  onAccept={handleAcceptBuddy}
+                  onDecline={handleDeclineBuddy}
                       showActions={true}
-                    />
-                  ))}
-                </div>
+                />
+              ))}
+            </div>
               </div>
             )}
 
@@ -363,10 +358,10 @@ export default function Community() {
                 <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                 <p className="text-gray-600 mb-4">You don't have any buddies yet</p>
                 <Link to={createPageUrl("FindFriends")}>
-                  <Button className="bg-gradient-to-r from-purple-500 to-pink-500">
-                    <UserPlus className="w-5 h-5 mr-2" />
-                    Find Your First Buddy
-                  </Button>
+                <Button className="bg-gradient-to-r from-purple-500 to-pink-500">
+                  <UserPlus className="w-5 h-5 mr-2" />
+                  Find Your First Buddy
+                </Button>
                 </Link>
               </div>
             )}

@@ -44,26 +44,34 @@ export default function SignIn() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    console.log('🔥 SignIn.jsx - UPDATED VERSION 2.0 - Code is fresh!');
+    
     if (!email || !password) {
       toast.error("Please enter both email and password");
       return;
     }
 
     setIsLoading(true);
+    console.log('Sign in form submitted');
 
     try {
       const result = await login(email, password);
+      console.log('Login result:', result);
       
-      if (result.success) {
+      if (result && result.success) {
         toast.success("Successfully signed in!");
-        // Redirect to Dashboard
-        navigate(createPageUrl("Dashboard"));
+        // Small delay to ensure state is updated
+        setTimeout(() => {
+          navigate(createPageUrl("Profile"));
+        }, 100);
       } else {
-        toast.error(result.error || "Invalid email or password. Please try again.");
+        const errorMessage = result?.error || "Invalid email or password. Please try again.";
+        console.error('Login failed:', errorMessage);
+        toast.error(errorMessage);
       }
     } catch (error) {
       console.error("Login error:", error);
-      toast.error("An error occurred. Please try again.");
+      toast.error(error.message || "An error occurred. Please try again.");
     } finally {
       setIsLoading(false);
     }
