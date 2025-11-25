@@ -4,9 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { motion } from "framer-motion";
-import { Calendar, Clock, MapPin, Bell, Repeat } from "lucide-react";
+import { Calendar, Clock, MapPin, Bell, Repeat, X } from "lucide-react";
 
 const translations = {
   en: {
@@ -152,18 +151,33 @@ export default function CalendarEventForm({ event, onSubmit, onCancel, milestone
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: -20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      className="mb-8"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      onClick={onCancel}
     >
-      <Card className="bg-white/90 backdrop-blur-sm border-2 border-pink-200 shadow-xl">
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-600 to-purple-600">
-            {event ? t.editEvent : t.addEvent}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.9, opacity: 0 }}
+        onClick={(e) => e.stopPropagation()}
+        className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+      >
+        <div className="sticky top-0 bg-white border-b border-gray-200 p-6 rounded-t-3xl">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-600 to-purple-600">
+              {event ? t.editEvent : t.addEvent}
+            </h2>
+            <button
+              onClick={onCancel}
+              className="text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+        </div>
+        <div className="p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid md:grid-cols-2 gap-6">
               <div className="md:col-span-2">
@@ -325,8 +339,8 @@ export default function CalendarEventForm({ event, onSubmit, onCancel, milestone
               </Button>
             </div>
           </form>
-        </CardContent>
-      </Card>
+        </div>
+      </motion.div>
     </motion.div>
   );
 }

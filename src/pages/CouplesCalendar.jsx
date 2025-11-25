@@ -362,7 +362,6 @@ export default function CouplesCalendar() {
                 setShowForm(false);
                 setEditingEvent(null);
               }}
-              milestones={milestones}
             />
           )}
         </AnimatePresence>
