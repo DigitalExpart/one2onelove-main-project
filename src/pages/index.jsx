@@ -1,4 +1,5 @@
 import Layout from "./Layout.jsx";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 import Home from "./Home";
 
@@ -271,7 +272,11 @@ function PagesContent() {
                 
                 <Route path="/DateIdeas" element={<DateIdeas />} />
                 
-                <Route path="/Profile" element={<Profile />} />
+                <Route path="/Profile" element={
+                  <ErrorBoundary>
+                    <Profile />
+                  </ErrorBoundary>
+                } />
                 
                 <Route path="/WinACruise" element={<WinACruise />} />
                 

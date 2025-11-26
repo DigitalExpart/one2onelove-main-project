@@ -853,6 +853,9 @@ function ActiveGoalsCard() {
 }
 
 export default function Profile() {
+  console.log('🔵 Profile component: Starting render');
+  
+  // All hooks must be at the top level
   const { currentLanguage } = useLanguage();
   const t = translations[currentLanguage] || translations.en;
   const [isEditing, setIsEditing] = useState(false);
@@ -864,16 +867,27 @@ export default function Profile() {
   const queryClient = useQueryClient();
   const { user, isLoading, refreshUserProfile } = useAuth();
   const isRegularUser = !user?.user_type || user.user_type === "regular";
+  
+  console.log('🔵 Profile component rendering:', { 
+    hasUser: !!user, 
+    userId: user?.id, 
+    isLoading,
+    currentLanguage 
+  });
 
-  // Force refresh of profile data when page loads
+  // Force refresh of profile data when page loads (only once)
   useEffect(() => {
     if (user?.id) {
       // Invalidate all queries to get fresh data
       queryClient.invalidateQueries({ queryKey: ['user', user.id] });
       queryClient.invalidateQueries({ queryKey: ['relationship-goals'] });
-      refreshUserProfile();
+      // Refresh profile asynchronously without blocking render
+      refreshUserProfile().catch(error => {
+        console.error('Error refreshing profile:', error);
+      });
     }
-  }, [user?.id, queryClient, refreshUserProfile]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]); // Only depend on user.id to avoid infinite loops
 
   // Mock memories data for now (can be replaced with actual query later)
   const memories = [];
@@ -979,7 +993,27 @@ export default function Profile() {
 
   // Show loading only if we have no user data at all (not just loading state)
   // This allows the page to render with basic user data even if profile fetch is slow
-  if (isLoading && !user) {
+  // Add timeout to prevent infinite loading
+  const [showLoading, setShowLoading] = useState(() => isLoading && !user);
+  
+  useEffect(() => {
+    // Show loading for max 3 seconds, then render anyway
+    const timer = setTimeout(() => {
+      setShowLoading(false);
+    }, 3000);
+    
+    // If we have user or not loading, hide loading immediately
+    if (user || !isLoading) {
+      setShowLoading(false);
+    } else {
+      // Only show loading if we're actually loading and have no user
+      setShowLoading(isLoading && !user);
+    }
+    
+    return () => clearTimeout(timer);
+  }, [isLoading, user]);
+  
+  if (showLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 flex items-center justify-center">
         <div className="text-center">
