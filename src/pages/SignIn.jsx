@@ -85,10 +85,10 @@ export default function SignIn() {
         
         // Small delay to ensure state updates, then redirect
         setTimeout(() => {
-          const profileUrl = createPageUrl("Profile");
-          console.log('🔵 Redirecting to:', profileUrl);
-          // Use window.location.replace for immediate redirect
-          window.location.replace(profileUrl);
+        const profileUrl = createPageUrl("Profile");
+        console.log('🔵 Redirecting to:', profileUrl);
+        // Use window.location.replace for immediate redirect
+        window.location.replace(profileUrl);
         }, 100);
       } else {
         const errorMessage = result?.error || "Invalid email or password. Please try again.";

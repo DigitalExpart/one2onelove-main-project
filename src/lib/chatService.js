@@ -590,17 +590,17 @@ export const markMessagesAsRead = async (conversationId) => {
       if (recalcError) {
         // Fallback: Manual update if RPC function doesn't exist
         console.log('⚠️ RPC function not available, using manual update');
-        const { error: updateError } = await supabase
-          .from('conversations')
+      const { error: updateError } = await supabase
+        .from('conversations')
           .update({ 
             [updateField]: newCount,
             updated_at: new Date().toISOString()
           })
-          .eq('id', conversationId);
+        .eq('id', conversationId);
 
-        if (updateError) {
+      if (updateError) {
           console.error('❌ Error resetting unread count:', updateError);
-        } else {
+      } else {
           console.log(`✅✅✅ Reset ${updateField} from ${currentCount} to ${newCount} (manual)`);
         }
       } else {
