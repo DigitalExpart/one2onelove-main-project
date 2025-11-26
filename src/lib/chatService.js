@@ -741,6 +741,20 @@ export const subscribeToMessages = (conversationId, callback) => {
         callback(payload.new);
       }
     )
+    .on(
+      'postgres_changes',
+      {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'messages',
+        filter: `conversation_id=eq.${conversationId}`,
+      },
+      (payload) => {
+        console.log('📨 Message updated (read status):', payload);
+        // Trigger callback to update UI when read status changes
+        callback(payload.new);
+      }
+    )
     .subscribe();
 
   return subscription;

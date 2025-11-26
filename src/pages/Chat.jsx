@@ -59,6 +59,27 @@ export default function Chat() {
     enabled: !!selectedChatId,
   });
 
+  // Mark messages as read when chat is viewed
+  useEffect(() => {
+    if (selectedChatId && user) {
+      // Small delay to ensure messages are loaded
+      const timer = setTimeout(() => {
+        // Mark all unread messages as read when viewing the chat
+        markMessagesAsRead(selectedChatId)
+          .then(() => {
+            // Invalidate queries to update UI (badge, checkmarks, etc.)
+            queryClient.invalidateQueries(['messages', selectedChatId]);
+            queryClient.invalidateQueries(['conversations']);
+          })
+          .catch(error => {
+            console.error('Error marking messages as read:', error);
+          });
+      }, 500); // Small delay to ensure messages are loaded
+
+      return () => clearTimeout(timer);
+    }
+  }, [selectedChatId, user]);
+
   // Handle URL parameters to open a specific chat
   useEffect(() => {
     const userId = searchParams.get('userId');

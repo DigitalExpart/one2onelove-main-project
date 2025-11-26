@@ -143,7 +143,7 @@ const translations = {
   }
 };
 
-const MessageStatus = ({ status, isRead }) => {
+const MessageStatus = ({ status, isRead, readAt }) => {
   if (status === 'sending') {
     return <Clock className="w-4 h-4 text-gray-400" />;
   }
@@ -153,9 +153,11 @@ const MessageStatus = ({ status, isRead }) => {
   if (status === 'delivered') {
     return <CheckCheck className="w-4 h-4 text-gray-400" />;
   }
-  if (status === 'read' && isRead) {
+  // Show blue checkmarks when message is read (readAt is set)
+  if (status === 'read' || (readAt && isRead)) {
     return <CheckCheck className="w-4 h-4 text-blue-500" />;
   }
+  // Default to delivered (gray double checkmark)
   return <CheckCheck className="w-4 h-4 text-gray-400" />;
 };
 
@@ -683,7 +685,11 @@ export default function ChatMessage({
             <span className="text-xs text-gray-500">{formatMessageTime(message.timestamp)}</span>
           )}
           {isOwn && (
-            <MessageStatus status={message.status || 'sent'} isRead={message.isRead} />
+            <MessageStatus 
+              status={message.status || 'sent'} 
+              isRead={message.isRead} 
+              readAt={message.readAt}
+            />
           )}
         </div>
 
