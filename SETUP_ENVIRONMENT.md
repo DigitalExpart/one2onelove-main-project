@@ -72,7 +72,6 @@ The `.env` file is already in `.gitignore` to prevent accidental commits of sens
 
 ## Need Help?
 
-If you need the Supabase credentials, contact:
-- Base44 support: app@base44.com
 - Check project documentation at `SIGNUP_SIGNIN_STATUS.md`
+- See [BASE44_REMOVAL_SQL_SETUP.md](./BASE44_REMOVAL_SQL_SETUP.md) for database setup after base44 removal
 

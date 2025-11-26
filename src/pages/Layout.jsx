@@ -214,9 +214,13 @@ function LanguageContent({ children, currentPageName }) {
             {/* Logo */}
             <Link to={createPageUrl("Home")} className="flex items-center gap-3 hover:opacity-90 transition-opacity flex-shrink-0">
               <img 
-                src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/691277042e7df273d4135492/19ffc2fa2_ONE2ONELOVELOGO.png" 
+                src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/app-assets/logo.png" 
                 alt="One2One Love Logo" 
                 className="h-10 w-auto"
+                onError={(e) => {
+                  // Fallback to a placeholder or text if image fails to load
+                  e.target.style.display = 'none';
+                }}
               />
               <div className="hidden sm:block">
                 <div className="text-lg font-bold text-white leading-tight">One 2 One Love</div>
