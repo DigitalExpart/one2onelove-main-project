@@ -15,7 +15,7 @@ export const isStripeConfigured = () => {
 /**
  * Create a Stripe checkout session for subscription
  * @param {string} priceId - Stripe price ID
- * @param {string} planName - Plan name (Basis, Premiere, Exclusive)
+ * @param {string} planName - Plan name (Basic, Premiere, Exclusive)
  * @param {number} amount - Amount in dollars
  * @returns {Promise<{success: boolean, sessionId?: string, error?: string}>}
  */
@@ -97,7 +97,7 @@ export const redirectToCheckout = async (sessionId) => {
 export const handleSubscriptionCheckout = async (plan) => {
   try {
     // For free plan, just update the user's subscription
-    if (plan.price === 0 || plan.name === 'Basis') {
+    if (plan.price === 0 || plan.name === 'Basic') {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
@@ -108,7 +108,7 @@ export const handleSubscriptionCheckout = async (plan) => {
       const { error } = await supabase
         .from('users')
         .update({
-          subscription_plan: 'Basis',
+          subscription_plan: 'Basic',
           subscription_price: 0,
           subscription_status: 'active',
           updated_at: new Date().toISOString()
@@ -306,7 +306,7 @@ export const hasFeatureAccess = (feature, user) => {
 
   // If subscription is not active, only basic features
   if (status !== 'active') {
-    return plan === 'Basis' && featureAccess.Basis.includes(feature);
+    return plan === 'Basic' && featureAccess.Basic.includes(feature);
   }
 
   // Check feature access by plan
@@ -315,7 +315,7 @@ export const hasFeatureAccess = (feature, user) => {
 
 // Feature access matrix
 const featureAccess = {
-  Basis: [
+  Basic: [
     'love_notes_limited', // 50+ notes
     'basic_quizzes',
     'date_ideas_limited', // 5 per month

@@ -24,7 +24,7 @@ const planFeatures = {
     icon: '💖',
     gradient: 'from-purple-400 to-pink-500',
     features: [
-      'Everything in Basis, plus:',
+      'Everything in Basic, plus:',
       '1000+ Love Notes Library',
       'AI Relationship Coach (50 questions/month)',
       'Unlimited Date Ideas with Filters',
@@ -53,7 +53,7 @@ const planFeatures = {
 };
 
 const planPrices = {
-  'Basis': { price: 0, period: 'month', label: 'FREE' },
+  'Basic': { price: 0, period: 'month', label: 'FREE' },
   'Premiere': { price: 19.99, period: 'month', label: '$19.99' },
   'Exclusive': { price: 34.99, period: 'month', label: '$34.99' }
 };
@@ -108,10 +108,10 @@ const translations = {
 
 export default function SubscriptionCard({ user, currentLanguage = 'en' }) {
   const t = translations[currentLanguage] || translations.en;
-  const userPlan = user?.subscription_plan || 'Basis';
-  const planInfo = planFeatures[userPlan] || planFeatures['Basis'];
-  const priceInfo = planPrices[userPlan] || planPrices['Basis'];
-  const isFree = userPlan === 'Basis';
+  const userPlan = user?.subscription_plan || 'Basic';
+  const planInfo = planFeatures[userPlan] || planFeatures['Basic'];
+  const priceInfo = planPrices[userPlan] || planPrices['Basic'];
+  const isFree = userPlan === 'Basic';
 
   return (
     <motion.div

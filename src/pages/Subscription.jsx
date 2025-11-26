@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 
 const tiers = [
   {
-    name: 'Basis',
+    name: 'Basic',
     tagline: 'Start Your Journey',
     price: 0,
     period: null,
@@ -38,7 +38,7 @@ const tiers = [
     icon: '💖',
     gradient: 'from-purple-400 to-pink-500',
     features: [
-      'Everything in Basis, plus:',
+      'Everything in Basic, plus:',
       'Access to 1000+ Love Notes Library',
       'AI Relationship Coach (50 questions/month)',
       'Unlimited Date Ideas',
@@ -106,7 +106,7 @@ export default function Subscription() {
     }
   }, [user]);
 
-  const currentPlan = user?.subscription_plan || 'Basis';
+  const currentPlan = user?.subscription_plan || 'Basic';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -126,7 +126,7 @@ export default function Subscription() {
         </div>
 
         {/* Current Subscription Info */}
-        {currentSubscription && currentSubscription.subscription_status === 'active' && currentPlan !== 'Basis' && (
+        {currentSubscription && currentSubscription.subscription_status === 'active' && currentPlan !== 'Basic' && (
           <Card className="mb-8 border-2 border-purple-200 bg-white">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">

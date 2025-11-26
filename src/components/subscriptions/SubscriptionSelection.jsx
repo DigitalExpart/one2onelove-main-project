@@ -9,7 +9,7 @@ export default function SubscriptionSelection({ onBack, onSelectPlan }) {
 
   const tiers = [
     {
-      name: 'Basis',
+      name: 'Basic',
       price: 0,
       period: 'month',
       description: 'Perfect for couples starting their journey',
@@ -36,7 +36,7 @@ export default function SubscriptionSelection({ onBack, onSelectPlan }) {
       gradient: 'from-purple-400 to-pink-500',
       popular: true,
       features: [
-        'Everything in Basis, plus:',
+        'Everything in Basic, plus:',
         '1000+ Love Notes Library',
         'AI Relationship Coach (50 questions/month)',
         'Unlimited Date Ideas with Filters',

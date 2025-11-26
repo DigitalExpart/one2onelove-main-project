@@ -67,20 +67,29 @@ export default function SignIn() {
         console.warn('⚠️ Could not check localStorage:', storageError);
       }
 
-      const result = await login(email, password);
+      // Add timeout to prevent infinite loading
+      const loginPromise = login(email, password);
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Login timeout after 15 seconds')), 15000)
+      );
+      
+      const result = await Promise.race([loginPromise, timeoutPromise]);
       console.log('🔵 Login result:', result);
       
       if (result && result.success) {
         console.log('✅ Login successful, redirecting...');
         toast.success("Successfully signed in!");
+        
+        // Set loading to false before redirect
         setIsLoading(false);
         
-        // Force navigation immediately using window.location for reliability
-        const profileUrl = createPageUrl("Profile");
-        console.log('🔵 Redirecting to:', profileUrl);
-        
-        // Use window.location.replace for immediate redirect
-        window.location.replace(profileUrl);
+        // Small delay to ensure state updates, then redirect
+        setTimeout(() => {
+          const profileUrl = createPageUrl("Profile");
+          console.log('🔵 Redirecting to:', profileUrl);
+          // Use window.location.replace for immediate redirect
+          window.location.replace(profileUrl);
+        }, 100);
       } else {
         const errorMessage = result?.error || "Invalid email or password. Please try again.";
         console.error('❌ Login failed:', errorMessage);
@@ -89,8 +98,8 @@ export default function SignIn() {
       }
     } catch (error) {
       console.error("❌ Login error:", error);
-      toast.error(error.message || "An error occurred. Please try again.");
-    } finally {
+      const errorMessage = error.message || "An error occurred. Please try again.";
+      toast.error(errorMessage);
       setIsLoading(false);
     }
   };

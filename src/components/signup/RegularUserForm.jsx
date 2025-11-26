@@ -216,8 +216,8 @@ export default function RegularUserForm({ onBack }) {
         relationshipStatus: formData.relationshipStatus,
         anniversaryDate: formData.anniversaryDate,
         partnerEmail: formData.partnerEmail,
-        subscriptionPlan: 'Basis', // All new users start with free Basis plan
-        subscriptionPrice: 0, // Basis is free
+        subscriptionPlan: 'Basic', // All new users start with free Basic plan
+        subscriptionPrice: 0, // Basic is free
       });
 
       console.log('Register result:', result);

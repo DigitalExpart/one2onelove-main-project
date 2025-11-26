@@ -40,7 +40,7 @@ export default function TierCard({ tier, index, onSelect, isSelected, showPaymen
         // Note: For successful paid checkout, user will be redirected to Stripe
         // For free plan, user stays on page and sees success message
         if (planData.isFree || planData.price === 0) {
-          toast.success('Successfully subscribed to Basis plan!');
+          toast.success('Successfully subscribed to Basic plan!');
           // Reload to refresh user data
           setTimeout(() => window.location.reload(), 1000);
         } else {

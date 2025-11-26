@@ -464,7 +464,11 @@ export function AuthProvider({ children }) {
       const basicUserData = buildUserData(data.user);
       setUser(basicUserData);
       
-      // Fetch profile asynchronously (non-blocking)
+      // CRITICAL: Return immediately, don't wait for profile fetch
+      // Profile fetch happens asynchronously and won't block login
+      console.log('✅ Login successful - returning immediately with basic user data');
+      
+      // Fetch profile asynchronously (non-blocking) - don't await
       ensureUserProfile(data.user)
         .then(profileData => {
           if (profileData && isManualLoginRef.current) {
@@ -483,12 +487,12 @@ export function AuthProvider({ children }) {
         console.warn('⚠️ Presence initialization failed (non-critical):', err);
       });
       
-      console.log('✅ Login successful - returning immediately');
       // Clear manual login flag after a short delay
       setTimeout(() => {
         isManualLoginRef.current = false;
       }, 2000);
       
+      // Return immediately - don't wait for async operations
       return { success: true, user: basicUserData };
     } catch (error) {
       console.error('❌ Login error:', error);
@@ -593,7 +597,7 @@ export function AuthProvider({ children }) {
             relationship_status: relationshipStatus,
             anniversary_date: anniversaryDate,
             partner_email: partnerEmail,
-            subscription_plan: subscriptionPlan || 'Basis',
+            subscription_plan: subscriptionPlan || 'Basic',
             subscription_price: subscriptionPrice !== undefined ? subscriptionPrice : 0,
           },
         },
@@ -629,8 +633,8 @@ export function AuthProvider({ children }) {
             relationship_status: relationshipStatus || null,
             anniversary_date: anniversaryDate || null,
             partner_email: partnerEmail || null,
-            subscription_plan: subscriptionPlan || 'Basis',
-            subscription_price: subscriptionPrice !== undefined ? subscriptionPrice : 0, // Basis is now free
+            subscription_plan: subscriptionPlan || 'Basic',
+            subscription_price: subscriptionPrice !== undefined ? subscriptionPrice : 0, // Basic is now free
             subscription_status: 'active',
             email_verified: isEmailConfirmed, // Track email verification status
             created_at: new Date().toISOString(),

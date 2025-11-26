@@ -13,7 +13,7 @@ export const useFeatureAccess = (feature) => {
   
   return {
     hasAccess,
-    plan: user?.subscription_plan || 'Basis',
+    plan: user?.subscription_plan || 'Basic',
     status: user?.subscription_status || 'inactive',
     user
   };
@@ -27,7 +27,7 @@ export const useHasPaidPlan = () => {
   const { user } = useAuth();
   
   return (
-    user?.subscription_plan !== 'Basis' &&
+    user?.subscription_plan !== 'Basic' &&
     user?.subscription_status === 'active'
   );
 };
@@ -41,8 +41,8 @@ export const useCanUpgrade = () => {
   
   const plan = user?.subscription_plan || 'Basis';
   
-  // Can upgrade if on Basis or Premiere
-  return plan === 'Basis' || plan === 'Premiere';
+  // Can upgrade if on Basic or Premiere
+  return plan === 'Basic' || plan === 'Premiere';
 };
 
 /**
@@ -55,7 +55,7 @@ export const useFeatureLimits = () => {
   const plan = user?.subscription_plan || 'Basis';
   
   const limits = {
-    Basis: {
+    Basic: {
       loveNotes: 50,
       dateIdeas: 5,
       aiQuestions: 0,
@@ -75,7 +75,7 @@ export const useFeatureLimits = () => {
     }
   };
   
-  return limits[plan] || limits.Basis;
+  return limits[plan] || limits.Basic;
 };
 
 export default useFeatureAccess;
